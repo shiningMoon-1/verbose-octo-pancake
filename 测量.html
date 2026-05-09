@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>鸢尾花测量实验 | 科学取平均值 | 仿真尺子测量动画</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #e0f0da 0%, #c2dfb5 100%);
+            font-family: 'Segoe UI', 'Poppins', 'Roboto', system-ui;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .research-lab {
+            max-width: 1280px;
+            width: 100%;
+            background: #ffffffdd;
+            backdrop-filter: blur(2px);
+            border-radius: 32px;
+            box-shadow: 0 15px 30px rgba(40, 80, 30, 0.15);
+            overflow: hidden;
+            border: 1px solid rgba(90, 185, 144, 0.4);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #3e8e6b 0%, #2c6e4f 100%);
+            padding: 14px 24px;
+            text-align: center;
+            color: white;
+        }
+        .hero h1 {
+            font-size: 1.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-weight: 700;
+        }
+        .hero h1 span {
+            background: rgba(255,255,255,0.25);
+            padding: 4px 16px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+        }
+        .sub {
+            font-size: 0.85rem;
+            background: rgba(255,255,255,0.2);
+            display: inline-block;
+            padding: 4px 20px;
+            border-radius: 40px;
+            margin-top: 6px;
+        }
+
+        .species-bar {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 14px 24px 10px;
+            flex-wrap: wrap;
+        }
+        .species-btn {
+            background: #f5fff0;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 60px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #2d6a4f;
+            border: 1px solid #c8e0c0;
+            transition: 0.2s;
+        }
+        .species-btn.active {
+            background: #40916c;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(64,145,108,0.25);
+        }
+        .species-info {
+            font-size: 0.75rem;
+            background: rgba(0,0,0,0.06);
+            border-radius: 40px;
+            padding: 3px 12px;
+        }
+
+        /* 视频教程区域 - 更美观圆润 */
+        .video-tutorial {
+            background: white;
+            margin: 8px 24px 0px;
+            border-radius: 28px;
+            padding: 16px;
+            border: 1px solid #e6f0e3;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.05);
+            transition: 0.2s;
+        }
+        .video-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #2d6a4f;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-left: 6px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+            background: #f0f9ec;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .tutorial-video {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .video-note {
+            font-size: 0.7rem;
+            color: #6c8b63;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .flower-studio {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 10px 24px 16px;
+        }
+
+        .iris-artwork {
+            background: white;
+            border-radius: 28px;
+            padding: 16px;
+            text-align: center;
+            flex: 1.2;
+            min-width: 260px;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: 0.2s;
+            position: relative;
+            overflow: visible;
+        }
+        .iris-artwork:active {
+            transform: scale(0.98);
+        }
+        .iris-image-container {
+            width: 100%;
+            height: 220px;
+            border-radius: 20px;
+            overflow: hidden;
+            background: #f0f9ec;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .iris-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+        .iris-image.active {
+            display: block;
+        }
+        .iris-label {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #2d6a4f;
+            background: #eef5e9;
+            display: inline-block;
+            padding: 4px 18px;
+            border-radius: 40px;
+            margin: 8px 0 4px;
+        }
+        .measure-sepal-badge {
+            background: #b7e0b0;
+            border-radius: 40px;
+            padding: 6px 14px;
+            display: inline-block;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #1c4d35;
+        }
+        .click-hint {
+            font-size: 0.75rem;
+            color: #6c8b63;
+            margin-top: 6px;
+        }
+
+        /* 仿真尺子动画元素 - 更精致 */
+        .virtual-ruler {
+            position: fixed;
+            z-index: 2000;
+            background: #f9eec1;
+            background-image: linear-gradient(90deg, #cca86a 1px, transparent 1px);
+            background-size: 7px 100%;
+            border: 2px solid #7a5a3a;
+            border-radius: 12px;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-weight: bold;
+            color: #3c2a1f;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.2);
+            white-space: nowrap;
+        }
+        .ruler-mark {
+            position: absolute;
+            font-size: 10px;
+            bottom: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffe6b3;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .digital-caliper {
+            background: #26232e;
+            border-radius: 28px;
+            padding: 20px;
+            flex: 1.8;
+            min-width: 320px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            border-top: 4px solid #6fbf4c;
+        }
+        .lcd {
+            background: #1a1724;
+            border-radius: 24px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .lcd-row {
+            display: flex;
+            justify-content: space-between;
+            color: #d6ffb0;
+            font-size: 1rem;
+            margin: 8px 0;
+        }
+        .lcd-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #c3ff78;
+            text-shadow: 0 0 5px #7fdb3a;
+        }
+        .ruler-animation {
+            background: #3b3749;
+            border-radius: 16px;
+            height: 10px;
+            margin: 12px 0 16px;
+            overflow: hidden;
+        }
+        .ruler-slider {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #9bff6e, #5ab990);
+            border-radius: 16px;
+            transition: width 0.2s;
+        }
+        .progress-indicator {
+            background: #3d3a4f;
+            border-radius: 28px;
+            padding: 10px 14px;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #ffefb9;
+            margin-bottom: 16px;
+        }
+        .action-group {
+            display: flex;
+            gap: 14px;
+            margin: 12px 0;
+        }
+        .primary-btn {
+            background: linear-gradient(135deg, #5ab990, #40916c);
+            border: none;
+            padding: 12px 0;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            color: white;
+            flex: 1;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+            transition: 0.1s;
+        }
+        .primary-btn:active {
+            transform: translateY(1px);
+        }
+        #commitFlowerBtn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 14px;
+            font-size: 1rem;
+        }
+        .current-measure-list {
+            background: #f2f7ef;
+            border-radius: 20px;
+            padding: 10px;
+            margin-top: 16px;
+            max-height: 110px;
+            overflow-y: auto;
+        }
+        .current-measure-list-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #2d6a4f;
+            margin-bottom: 6px;
+        }
+        .measure-item {
+            background: white;
+            border-radius: 20px;
+            padding: 6px 10px;
+            margin: 4px 0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .motivation-text {
+            font-size: 0.8rem;
+            background: #eef5e9;
+            border-radius: 24px;
+            padding: 8px 12px;
+            margin-top: 12px;
+            text-align: center;
+            color: #2d6a4f;
+            font-weight: 500;
+        }
+
+        .record-area {
+            background: #fefef7;
+            margin: 0 24px 16px;
+            border-radius: 28px;
+            padding: 16px;
+            border: 1px solid #e6f0e3;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            border-left: 5px solid #5ab990;
+            padding-left: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .excel-btn {
+            background: #40916c;
+            border: none;
+            padding: 6px 20px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            transition: 0.2s;
+        }
+        .excel-btn:hover {
+            background: #2c6e4f;
+            transform: translateY(-2px);
+        }
+        .copy-btn {
+            background: #5ab990;
+            border: none;
+            padding: 6px 20px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+            transition: 0.2s;
+        }
+        .copy-btn:hover {
+            background: #40916c;
+            transform: translateY(-2px);
+        }
+        .clear-all-btn {
+            background: #d98c5f;
+            border: none;
+            padding: 6px 20px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+        }
+        .excel-table-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid #d0d7de;
+            background: white;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 1rem;
+            font-family: 'Segoe UI', 'Calibri', sans-serif;
+        }
+        .data-table th,
+        .data-table td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 16px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .data-table th {
+            background: #f3f6f9;
+            font-weight: 700;
+            color: #2d3e50;
+            border-bottom: 2px solid #d0d7de;
+            font-size: 1.05rem;
+        }
+        .data-table td {
+            background: white;
+            font-size: 0.95rem;
+        }
+        .data-table tr:hover td {
+            background: #f8f9fc;
+        }
+        .delete-cell-btn {
+            background: #ffb3a7;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            color: #5a2a1a;
+            font-weight: 600;
+        }
+        .delete-cell-btn:hover {
+            background: #ff8a78;
+        }
+        .empty-row {
+            text-align: center;
+            color: #8daa7a;
+            padding: 24px;
+            font-size: 1rem;
+        }
+
+        .stats-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 24px;
+            padding: 12px 16px;
+            flex: 1;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #2d6a4f;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            border: 1px solid #e0ecda;
+        }
+        .stat-number {
+            font-size: 1.5rem;
+            background: #5ab990;
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 50px;
+            color: white;
+            margin-left: 8px;
+            margin-top: 4px;
+        }
+
+        footer {
+            font-size: 0.75rem;
+            text-align: center;
+            color: #537c43;
+            margin: 0 24px 18px;
+            background: #f1f9ec;
+            padding: 8px;
+            border-radius: 28px;
+        }
+
+        .glow {
+            animation: softPulse 0.3s ease;
+        }
+        @keyframes softPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.01); background-color: #e2f7da; }
+            100% { transform: scale(1); }
+        }
+        .click-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2d6a4f;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            z-index: 1000;
+            font-weight: 500;
+        }
+
+        @media (max-width: 900px) {
+            .flower-studio {
+                flex-direction: column;
+            }
+            .data-table th,
+            .data-table td {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+            .data-table th {
+                font-size: 0.9rem;
+            }
+            .hero h1 {
+                font-size: 1.4rem;
+            }
+            .lcd-value {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="research-lab">
+    <div class="hero">
+        <h1>🌿 鸢尾花精准测量 🌸 <span>测量≥3次·取平均值</span></h1>
+        <div class="sub">📐 山鸢尾 | 变色鸢尾 | 科学实验</div>
+    </div>
+
+    <div class="species-bar">
+        <button id="btnSetosa" class="species-btn active">🏔️ 山鸢尾 <span class="species-info">4.8~5.5cm · 2.1~2.7cm</span></button>
+        <button id="btnVersicolor" class="species-btn">🌈 变色鸢尾 <span class="species-info">5.5~6.4cm · 2.4~3.0cm</span></button>
+    </div>
+
+    <!-- 视频教程区域 - 更新链接 -->
+    <div class="video-tutorial">
+        <div class="video-title">
+            <span>🎬</span> 花萼测量方法教学视频
+        </div>
+        <div class="video-container">
+            <video id="tutorialVideo" class="tutorial-video" controls preload="metadata" playsinline>
+                <source src="https://videotourl.com/videos/1778336717861-bbcb9f7b-1c3c-4bf6-ac83-c338190b7dbb.mp4" type="video/mp4">
+                您的浏览器不支持 video 标签。
+            </video>
+        </div>
+        <div class="video-note">📌 点击播放按钮观看如何正确测量花萼长度与宽度 | 可暂停/全屏</div>
+    </div>
+
+    <div class="flower-studio">
+        <div id="currentFlowerVisual" class="iris-artwork">
+            <div class="iris-image-container" id="irisImageContainer">
+                <img id="setosaImg" class="iris-image active" src="https://s1.img-e.com/20260415/69df33702ef20.png" alt="山鸢尾">
+                <img id="versicolorImg" class="iris-image" src="https://s1.img-e.com/20260415/69df329802cd7.png" alt="变色鸢尾">
+            </div>
+            <div class="iris-label">🌼 鸢尾花标本</div>
+            <div class="measure-sepal-badge">📌 点击花朵 或 测量键</div>
+            <div class="click-hint">✨ 仿真尺子测量 · 数值同步</div>
+        </div>
+
+        <div class="digital-caliper">
+            <div class="lcd">
+                <div class="lcd-row">🔬 电子卡尺 <span style="color:#ffd966;">●</span></div>
+                <div class="lcd-row">📏 花萼长度 : <span id="currentLen" class="lcd-value">--- cm</span></div>
+                <div class="lcd-row">📐 花萼宽度 : <span id="currentWid" class="lcd-value">--- cm</span></div>
+            </div>
+            <div class="ruler-animation"><div class="ruler-slider" id="rulerSlider"></div></div>
+            <div id="measureProgress" class="progress-indicator">🌱 已测量 0 次 (≥3次可记录)</div>
+            <div class="action-group">
+                <button id="measureOnceBtn" class="primary-btn">📏 测量一次</button>
+                <button id="resetCurrentBtn" class="primary-btn secondary-btn">🔄 重置</button>
+            </div>
+            <button id="commitFlowerBtn" class="primary-btn" disabled>✨ 测量至少3次后记录 ✨</button>
+            <div class="current-measure-list">
+                <div class="current-measure-list-title">📋 本次测量记录</div>
+                <div id="measureItemsContainer" style="color:#9bbf89; text-align:center;">暂无数据</div>
+            </div>
+            <div id="liveTip" class="motivation-text">⭐ 多次测量取平均值，减小误差</div>
+        </div>
+    </div>
+
+    <div class="record-area">
+        <div class="section-title">
+            📋 实验数据表 (花萼长、宽、种类)
+            <div class="btn-group">
+                <button id="exportExcelBtn" class="excel-btn">📎 导出Excel文件</button>
+                <button id="copyTableBtn" class="copy-btn">📋 复制表格 (粘贴到Excel)</button>
+                <button id="clearAllRecordsBtn" class="clear-all-btn">🗑️ 清空所有</button>
+            </div>
+        </div>
+        <div class="excel-table-wrapper" id="excelTableContainer">
+            <table class="data-table" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>花萼长度 (cm)</th>
+                        <th>花萼宽度 (cm)</th>
+                        <th>种类</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr class="empty-row"><td colspan="5">✨ 暂无数据，请先测量并记录花朵 ✨</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="stats-group">
+            <div class="stat-card">🏔️ 山鸢尾<br>长 <span id="avgLenSetosa" class="stat-number">--</span> 宽 <span id="avgWidSetosa" class="stat-number">--</span></div>
+            <div class="stat-card">🌈 变色鸢尾<br>长 <span id="avgLenVersi" class="stat-number">--</span> 宽 <span id="avgWidVersi" class="stat-number">--</span></div>
+            <div class="stat-card">📊 总 <span id="totalFlowerCount" class="stat-number">0</span> 朵</div>
+        </div>
+    </div>
+    <footer>🔬 科学方法：同一朵花测量≥3次 → 自动计算平均值 → 记录多株对比 | 仿真尺子在测量时显示本次实测数值</footer>
+</div>
+<div id="clickToast" class="click-toast">📏 咔嚓</div>
+
+<script>
+    // 真实尺寸范围
+    const SPECIES_RANGE = {
+        setosa: { lenMin:4.80, lenMax:5.52, widMin:2.15, widMax:2.68 },
+        versicolor: { lenMin:5.45, lenMax:6.40, widMin:2.40, widMax:2.98 }
+    };
+    const TIPS = [
+        "📏 卡尺与萼片垂直，读数更准！", "🌸 山鸢尾花萼较短，变色鸢尾修长",
+        "🔍 多次测量取平均，减少误差！", "🌿 植物学家也是这样记录",
+        "📐 宽度在萼片最宽处测量", "🎓 实验重复性越高越可靠"
+    ];
+
+    let currentSpecies = 'setosa';
+    let currentMeasurements = [];
+    let recordedFlowers = [];
+    let nextFlowerId = 1;
+
+    // DOM
+    const btnSetosa = document.getElementById('btnSetosa');
+    const btnVersicolor = document.getElementById('btnVersicolor');
+    const measureOnceBtn = document.getElementById('measureOnceBtn');
+    const resetCurrentBtn = document.getElementById('resetCurrentBtn');
+    const commitFlowerBtn = document.getElementById('commitFlowerBtn');
+    const clearAllBtn = document.getElementById('clearAllRecordsBtn');
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    const copyTableBtn = document.getElementById('copyTableBtn');
+    const currentLenSpan = document.getElementById('currentLen');
+    const currentWidSpan = document.getElementById('currentWid');
+    const measureProgressSpan = document.getElementById('measureProgress');
+    const liveTipSpan = document.getElementById('liveTip');
+    const totalFlowerCountSpan = document.getElementById('totalFlowerCount');
+    const currentFlowerVisual = document.getElementById('currentFlowerVisual');
+    const setosaImg = document.getElementById('setosaImg');
+    const versicolorImg = document.getElementById('versicolorImg');
+    const measureItemsContainer = document.getElementById('measureItemsContainer');
+    const rulerSlider = document.getElementById('rulerSlider');
+    const clickToast = document.getElementById('clickToast');
+    const tableBody = document.getElementById('tableBody');
+    const irisImageContainer = document.getElementById('irisImageContainer');
+
+    // 仿真尺子动画：接收测量值，并在尺子上显示长度和宽度数值
+    async function showRulerMeasuring(measurement) {
+        const targetRect = irisImageContainer.getBoundingClientRect();
+        if (!targetRect) return;
+        
+        const ruler = document.createElement('div');
+        ruler.className = 'virtual-ruler';
+        const rulerWidth = 230;
+        const rulerHeight = 46;
+        const startLeft = targetRect.right + 20;
+        const startTop = targetRect.top + targetRect.height/2 - rulerHeight/2;
+        ruler.style.width = `${rulerWidth}px`;
+        ruler.style.height = `${rulerHeight}px`;
+        ruler.style.left = `${startLeft}px`;
+        ruler.style.top = `${startTop}px`;
+        ruler.style.backgroundSize = '7px 100%';
+        // 在尺子上显示本次测量值（与下方读数完全一致）
+        ruler.innerHTML = `
+            <div style="display:flex; align-items:center; justify-content:center; width:100%; gap:8px; font-size:13px;">
+                <span>📏</span>
+                <span style="background:#efd280; padding:4px 10px; border-radius:30px;">长: ${measurement.length.toFixed(2)} cm</span>
+                <span>📐</span>
+                <span style="background:#efd280; padding:4px 10px; border-radius:30px;">宽: ${measurement.width.toFixed(2)} cm</span>
+                <span>📍</span>
+            </div>
+            <div class="ruler-mark">✨ 测量读数 ✨</div>
+        `;
+        document.body.appendChild(ruler);
+        
+        await new Promise(r => requestAnimationFrame(r));
+        ruler.style.left = `${targetRect.left + targetRect.width/2 - rulerWidth/2}px`;
+        ruler.style.top = `${targetRect.top + targetRect.height/2 - rulerHeight/2}px`;
+        
+        await new Promise(r => setTimeout(r, 400));
+        // 闪烁效果表示读数完成
+        ruler.style.boxShadow = '0 0 0 4px #ffd966';
+        ruler.style.backgroundColor = '#fff8e0';
+        await new Promise(r => setTimeout(r, 200));
+        ruler.remove();
+    }
+
+    function showToast(msg) {
+        clickToast.style.opacity = '1';
+        if (msg) liveTipSpan.innerHTML = msg;
+        setTimeout(() => clickToast.style.opacity = '0', 300);
+    }
+
+    function showRandomTip() {
+        const tip = TIPS[Math.floor(Math.random() * TIPS.length)];
+        liveTipSpan.innerHTML = `💡 ${tip}`;
+        setTimeout(() => {
+            if (liveTipSpan.innerHTML.includes(tip))
+                liveTipSpan.innerHTML = "⭐ 多次测量取平均值，减小误差";
+        }, 3000);
+    }
+
+    function switchFlowerImage(species) {
+        if (species === 'setosa') {
+            setosaImg.classList.add('active');
+            versicolorImg.classList.remove('active');
+        } else {
+            setosaImg.classList.remove('active');
+            versicolorImg.classList.add('active');
+        }
+    }
+
+    function generateSingleMeasurement(species) {
+        const r = SPECIES_RANGE[species];
+        const len = parseFloat((r.lenMin + Math.random() * (r.lenMax - r.lenMin)).toFixed(2));
+        const wid = parseFloat((r.widMin + Math.random() * (r.widMax - r.widMin)).toFixed(2));
+        return { length: len, width: wid };
+    }
+
+    function computeCurrentAvg() {
+        if (currentMeasurements.length === 0) return { avgLen: 0, avgWid: 0 };
+        let sl = 0, sw = 0;
+        currentMeasurements.forEach(m => { sl += m.length; sw += m.width; });
+        return { avgLen: sl / currentMeasurements.length, avgWid: sw / currentMeasurements.length };
+    }
+
+    function updateMeasureListDisplay() {
+        if (currentMeasurements.length === 0) {
+            measureItemsContainer.innerHTML = '<div style="color:#9bbf89; text-align:center;">暂无数据</div>';
+            return;
+        }
+        let html = '';
+        currentMeasurements.forEach((m, idx) => {
+            html += `<div class="measure-item">
+                        <span>📌 第${idx+1}次</span>
+                        <span>长: ${m.length.toFixed(2)}cm 宽: ${m.width.toFixed(2)}cm</span>
+                     </div>`;
+        });
+        measureItemsContainer.innerHTML = html;
+    }
+
+    function animateRuler(value, maxVal = 7.0) {
+        let percent = (value / maxVal) * 100;
+        percent = Math.min(100, Math.max(0, percent));
+        rulerSlider.style.width = `${percent}%`;
+    }
+
+    function updateCurrentDisplay() {
+        const c = currentMeasurements.length;
+        if (c === 0) {
+            currentLenSpan.innerText = "--- cm";
+            currentWidSpan.innerText = "--- cm";
+            measureProgressSpan.innerText = "🌱 已测量 0 次 (≥3次可记录)";
+            commitFlowerBtn.disabled = true;
+            commitFlowerBtn.innerText = "✨ 测量至少3次后记录 ✨";
+            animateRuler(0);
+            updateMeasureListDisplay();
+            return;
+        }
+        const last = currentMeasurements[c - 1];
+        currentLenSpan.innerText = last.length.toFixed(2) + " cm";
+        currentWidSpan.innerText = last.width.toFixed(2) + " cm";
+        measureProgressSpan.innerText = `📝 已测量 ${c} 次 ${c >= 3 ? "✅ 可记录" : ""}`;
+        animateRuler(last.length, 7.0);
+        if (c >= 3) {
+            commitFlowerBtn.disabled = false;
+            const avg = computeCurrentAvg();
+            commitFlowerBtn.innerText = `🌺 记录 (平均值 ${avg.avgLen.toFixed(2)}/${avg.avgWid.toFixed(2)}cm)`;
+        } else {
+            commitFlowerBtn.disabled = true;
+            commitFlowerBtn.innerText = `📌 还需 ${3 - c} 次测量`;
+        }
+        updateMeasureListDisplay();
+    }
+
+    async function performOneMeasurement() {
+        // 先生成本次测量值（保证尺子动画和最终读数一致）
+        const newMeas = generateSingleMeasurement(currentSpecies);
+        
+        // 播放仿真尺子动画，动画中显示本次测量的具体数值
+        await showRulerMeasuring(newMeas);
+        
+        // 动画结束后，将本次测量值存入数组并更新界面
+        currentMeasurements.push(newMeas);
+        currentFlowerVisual.classList.add('glow');
+        setTimeout(() => currentFlowerVisual.classList.remove('glow'), 300);
+        updateCurrentDisplay();
+        showToast();
+        showRandomTip();
+        if (currentMeasurements.length === 3) {
+            liveTipSpan.innerHTML = "🎉 已完成3次测量！可记录~";
+            setTimeout(() => showRandomTip(), 2000);
+        }
+    }
+
+    function resetCurrentFlower() {
+        if (currentMeasurements.length > 0 && confirm("重置当前测量数据？")) {
+            currentMeasurements = [];
+            updateCurrentDisplay();
+            showToast();
+            liveTipSpan.innerHTML = "🔄 已重置，可重新测量";
+            setTimeout(() => showRandomTip(), 1500);
+        }
+    }
+
+    function commitCurrentFlower() {
+        if (currentMeasurements.length < 3) return;
+        const avg = computeCurrentAvg();
+        recordedFlowers.push({
+            id: nextFlowerId++,
+            species: currentSpecies,
+            avgLength: parseFloat(avg.avgLen.toFixed(2)),
+            avgWidth: parseFloat(avg.avgWid.toFixed(2)),
+        });
+        currentMeasurements = [];
+        updateCurrentDisplay();
+        renderExcelTable();
+        updateStats();
+        showToast();
+        liveTipSpan.innerHTML = "✅ 记录成功！可测量下一朵";
+        setTimeout(() => showRandomTip(), 1500);
+        const statsGroup = document.querySelector('.stats-group');
+        statsGroup.classList.add('glow');
+        setTimeout(() => statsGroup.classList.remove('glow'), 300);
+    }
+
+    function renderExcelTable() {
+        if (recordedFlowers.length === 0) {
+            tableBody.innerHTML = '<tr class="empty-row"><td colspan="5">✨ 暂无数据，请先测量并记录花朵 ✨</td></tr>';
+            return;
+        }
+        let html = '';
+        recordedFlowers.forEach((flower, idx) => {
+            const speciesName = flower.species === 'setosa' ? '山鸢尾' : '变色鸢尾';
+            html += `
+                <tr data-id="${flower.id}">
+                    <td>${idx+1}</td>
+                    <td>${flower.avgLength} cm</td>
+                    <td>${flower.avgWidth} cm</td>
+                    <td>${speciesName}</td>
+                    <td><button class="delete-cell-btn" data-id="${flower.id}">删除</button></td>
+                </tr>
+            `;
+        });
+        tableBody.innerHTML = html;
+        document.querySelectorAll('.delete-cell-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.dataset.id);
+                recordedFlowers = recordedFlowers.filter(f => f.id !== id);
+                renderExcelTable();
+                updateStats();
+                showToast();
+                liveTipSpan.innerHTML = "🗑️ 已删除一条记录";
+                setTimeout(() => showRandomTip(), 1500);
+            };
+        });
+    }
+
+    function exportToExcelFile() {
+        if (recordedFlowers.length === 0) {
+            alert("暂无数据，请先记录花朵！");
+            return;
+        }
+        const rows = [["花萼长度(cm)", "花萼宽度(cm)", "种类"]];
+        for (let flower of recordedFlowers) {
+            const speciesName = flower.species === 'setosa' ? '山鸢尾' : '变色鸢尾';
+            rows.push([flower.avgLength, flower.avgWidth, speciesName]);
+        }
+        const csvContent = rows.map(row => row.join(",")).join("\n");
+        const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.setAttribute("download", "鸢尾花测量数据.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showToast();
+        liveTipSpan.innerHTML = "📎 数据已导出为CSV文件，可用Excel打开";
+        setTimeout(() => showRandomTip(), 2000);
+    }
+
+    function copyTableToClipboard() {
+        if (recordedFlowers.length === 0) {
+            alert("暂无数据，请先记录花朵！");
+            return;
+        }
+        let rows = [["花萼长度(cm)", "花萼宽度(cm)", "种类"]];
+        for (let flower of recordedFlowers) {
+            const speciesName = flower.species === 'setosa' ? '山鸢尾' : '变色鸢尾';
+            rows.push([flower.avgLength, flower.avgWidth, speciesName]);
+        }
+        const tsvContent = rows.map(row => row.join("\t")).join("\n");
+        navigator.clipboard.writeText(tsvContent).then(() => {
+            showToast();
+            liveTipSpan.innerHTML = "📋 表格数据已复制！可直接粘贴到 Excel";
+            setTimeout(() => showRandomTip(), 2000);
+        }).catch(() => {
+            alert("复制失败，请手动复制");
+        });
+    }
+
+    function updateStats() {
+        const s = recordedFlowers.filter(f => f.species === 'setosa');
+        const v = recordedFlowers.filter(f => f.species === 'versicolor');
+        document.getElementById('avgLenSetosa').innerHTML = s.length ? (s.reduce((a, b) => a + b.avgLength, 0) / s.length).toFixed(2) : '--';
+        document.getElementById('avgWidSetosa').innerHTML = s.length ? (s.reduce((a, b) => a + b.avgWidth, 0) / s.length).toFixed(2) : '--';
+        document.getElementById('avgLenVersi').innerHTML = v.length ? (v.reduce((a, b) => a + b.avgLength, 0) / v.length).toFixed(2) : '--';
+        document.getElementById('avgWidVersi').innerHTML = v.length ? (v.reduce((a, b) => a + b.avgWidth, 0) / v.length).toFixed(2) : '--';
+        totalFlowerCountSpan.innerText = recordedFlowers.length;
+    }
+
+    function setSpecies(sp) {
+        if (currentMeasurements.length > 0 && !confirm("切换会丢失当前测量，确定？")) return;
+        currentSpecies = sp;
+        switchFlowerImage(sp);
+        currentMeasurements = [];
+        updateCurrentDisplay();
+        btnSetosa.classList.toggle('active', sp === 'setosa');
+        btnVersicolor.classList.toggle('active', sp === 'versicolor');
+        showToast();
+        liveTipSpan.innerHTML = sp === 'setosa' ? "🏔️ 已切换至山鸢尾" : "🌈 已切换至变色鸢尾";
+        setTimeout(() => showRandomTip(), 1500);
+    }
+
+    function clearAllFlowers() {
+        if (recordedFlowers.length > 0 && confirm("清空所有记录？")) {
+            recordedFlowers = [];
+            nextFlowerId = 1;
+            renderExcelTable();
+            updateStats();
+            showToast();
+            liveTipSpan.innerHTML = "🧹 所有记录已清空";
+            setTimeout(() => showRandomTip(), 1500);
+        }
+    }
+
+    function bindEvents() {
+        btnSetosa.onclick = () => setSpecies('setosa');
+        btnVersicolor.onclick = () => setSpecies('versicolor');
+        measureOnceBtn.onclick = performOneMeasurement;
+        resetCurrentBtn.onclick = resetCurrentFlower;
+        commitFlowerBtn.onclick = commitCurrentFlower;
+        clearAllBtn.onclick = clearAllFlowers;
+        exportExcelBtn.onclick = exportToExcelFile;
+        copyTableBtn.onclick = copyTableToClipboard;
+        currentFlowerVisual.onclick = performOneMeasurement;
+    }
+
+    function init() {
+        bindEvents();
+        switchFlowerImage('setosa');
+        updateCurrentDisplay();
+        renderExcelTable();
+        updateStats();
+        showRandomTip();
+    }
+    init();
+</script>
+</body>
+</html>
