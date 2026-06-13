@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>智能灌溉系统 - 三灯联动浇水花园 (灌溉持续5秒)</title>
+    <style>
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #c8e8ff 0%, #b0d4ee 100%);
+            font-family: 'Segoe UI', 'Poppins', 'Roboto', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* 主卡片容器 */
+        .garden-container {
+            max-width: 1100px;
+            width: 100%;
+            background: #5b8c5a;
+            background-image: radial-gradient(circle at 10% 30%, rgba(80, 110, 70, 0.4) 2%, transparent 2.5%);
+            background-size: 28px 28px;
+            border-radius: 64px 64px 48px 48px;
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.3), inset 0 1px 3px rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+            backdrop-filter: blur(0px);
+            transition: all 0.2s;
+        }
+
+        /* 灯区 (上方中部) */
+        .lamps-area {
+            background: #2e3820;
+            padding: 20px 16px 18px;
+            border-bottom: 6px solid #cfb284;
+            box-shadow: inset 0 -2px 0 #4a5c2c, 0 5px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .lamps {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .lamp {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 20px;
+            border-radius: 60px;
+            backdrop-filter: blur(2px);
+        }
+
+        .lamp-light {
+            width: 60px;
+            height: 60px;
+            background-color: #4a4a4a;
+            border-radius: 50%;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255,255,255,0.2);
+            transition: all 0.2s ease;
+            border: 2px solid #f9e0a0;
+        }
+
+        .lamp-label {
+            color: #f9f3cf;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-shadow: 1px 1px 0 #2c2c1c;
+            letter-spacing: 1px;
+        }
+
+        /* 绿灯点亮效果 */
+        .lamp-light.green-lit {
+            background-color: #2eff6e;
+            box-shadow: 0 0 20px #32ff6e, 0 0 8px #aaffc0;
+            border-color: #f0ffb0;
+        }
+
+        /* 主场景区 (地面以上 + 地下蓄水池) */
+        .scene {
+            position: relative;
+            padding: 20px 20px 0px 20px;
+        }
+
+        /* 地平线 / 地面层 */
+        .ground {
+            position: relative;
+            background: #7c5e3a;
+            background: linear-gradient(180deg, #8b6946 0%, #5e3e1e 100%);
+            border-radius: 80px 80px 0 0;
+            min-height: 280px;
+            border-bottom: 4px solid #4a3520;
+            box-shadow: inset 0 5px 8px rgba(0,0,0,0.1);
+            z-index: 2;
+        }
+
+        /* 地上区域: 花草 + 温度计 布局 */
+        .above-ground {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            padding: 20px 30px 40px;
+            gap: 40px;
+            flex-wrap: wrap;
+            min-height: 260px;
+        }
+
+        /* 花草区块 */
+        .flowers-area {
+            background: rgba(80, 110, 50, 0.2);
+            border-radius: 100px;
+            padding: 15px 30px 10px 30px;
+            cursor: pointer;
+            transition: transform 0.1s ease, background 0.2s;
+            text-align: center;
+        }
+        .flowers-area:hover {
+            transform: scale(1.02);
+            background: rgba(110, 150, 70, 0.4);
+        }
+        .flowers-area:active {
+            transform: scale(0.98);
+        }
+
+        .flower-group {
+            display: flex;
+            gap: 18px;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        .flower {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .petals {
+            background: #ffb7c5;
+            width: 38px;
+            height: 38px;
+            border-radius: 50% 50% 50% 50%;
+            box-shadow: -8px -5px 0 #ff9eb0, 8px -5px 0 #ff9eb0, -5px 8px 0 #ff9eb0, 5px 8px 0 #ff9eb0;
+            background-color: #ff6f91;
+            transition: all 0.2s;
+        }
+        .stem {
+            width: 6px;
+            height: 35px;
+            background: #3a754a;
+            margin-top: 4px;
+            border-radius: 3px;
+        }
+        .leaf {
+            width: 14px;
+            height: 20px;
+            background: #5fad41;
+            border-radius: 80% 0 60% 20%;
+            margin-left: 8px;
+            transform: rotate(-25deg);
+        }
+        .grass-tuft {
+            width: 10px;
+            height: 22px;
+            background: #4f9a2c;
+            border-radius: 40%;
+            transform: skewX(-5deg);
+        }
+
+        /* 温度计容器 */
+        .thermometer-area {
+            background: rgba(220, 200, 150, 0.3);
+            padding: 10px 20px;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: transform 0.1s ease, background 0.2s;
+        }
+        .thermometer-area:hover {
+            background: rgba(240, 210, 130, 0.5);
+            transform: scale(1.02);
+        }
+        .thermometer {
+            position: relative;
+            width: 36px;
+            height: 130px;
+            background: #f0f0f0;
+            border-radius: 30px;
+            border: 2px solid #544c3c;
+            box-shadow: inset 0 0 0 2px #fff9e8, 0 5px 8px rgba(0,0,0,0.2);
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        .mercury {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: #ff7256;
+            height: 35%;
+            border-radius: 20px;
+            transition: height 0.3s;
+        }
+        .mercury.low-temp {
+            height: 18%;
+            background: #7fc9ff;
+        }
+        .temp-bulb {
+            position: absolute;
+            bottom: -14px;
+            left: 4px;
+            width: 24px;
+            height: 24px;
+            background: #ff7256;
+            border-radius: 50%;
+            border: 2px solid #544c3c;
+        }
+        .temp-label {
+            text-align: center;
+            font-size: 0.7rem;
+            background: #fff3cf;
+            margin-top: 12px;
+            padding: 3px 8px;
+            border-radius: 30px;
+            font-weight: bold;
+        }
+
+        /* 地下蓄水池区域 */
+        .underground {
+            background: #4b2e1a;
+            margin-top: -6px;
+            padding: 20px 30px 30px;
+            border-radius: 0 0 60px 60px;
+            box-shadow: inset 0 8px 12px rgba(0,0,0,0.2), 0 -2px 0 #997a48;
+            position: relative;
+            z-index: 1;
+        }
+        .pool-container {
+            background: #9b7c5b;
+            border-radius: 48px;
+            padding: 10px;
+            cursor: pointer;
+            transition: 0.1s linear;
+            border: 2px solid #ebc28e;
+        }
+        .pool-container:hover {
+            background: #ad8f6b;
+            transform: translateY(-2px);
+        }
+        .pool {
+            background: #245b6e;
+            background: linear-gradient(145deg, #1d8bb0, #146b8a);
+            height: 100px;
+            border-radius: 30px;
+            box-shadow: inset 0 5px 6px rgba(0,0,0,0.3), 0 2px 4px rgba(255,255,200,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .water-wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70%;
+            background: rgba(90, 210, 240, 0.6);
+            border-radius: 50% 50% 30px 30px;
+        }
+        .pool-text {
+            text-align: center;
+            margin-top: 8px;
+            font-weight: bold;
+            color: #fff3cf;
+            text-shadow: 2px 2px 0 #3e2a17;
+        }
+
+        /* 消息面板 & 状态显示 */
+        .info-panel {
+            background: #2f2b20e0;
+            backdrop-filter: blur(8px);
+            margin: 20px;
+            padding: 12px 20px;
+            border-radius: 48px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            color: white;
+            font-weight: bold;
+            border: 1px solid #ecd48c;
+        }
+        .status-badge {
+            background: #181e0e;
+            padding: 8px 14px;
+            border-radius: 36px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #3a3522;
+            padding: 4px 12px;
+            border-radius: 36px;
+        }
+        .action-log {
+            background: #1f2a0e;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-family: monospace;
+            font-size: 1rem;
+        }
+        button {
+            background: none;
+            border: none;
+        }
+        .irrigate-effect {
+            position: fixed;
+            pointer-events: none;
+            z-index: 200;
+        }
+        @keyframes splash {
+            0% { opacity: 0.8; transform: scale(0.2);}
+            100% { opacity: 0; transform: scale(2.5);}
+        }
+        .water-drop {
+            position: absolute;
+            background: #7dd3fc;
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            animation: splash 0.6s ease-out forwards;
+        }
+        /* 灌溉中禁用点击遮罩 */
+        .irrigating-mask {
+            position: fixed;
+            top:0;
+            left:0;
+            right:0;
+            bottom:0;
+            background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+            pointer-events: all;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 8px green;
+            flex-direction: column;
+        }
+        .irrigating-mask .message {
+            background: rgba(0,0,0,0.7);
+            padding: 12px 28px;
+            border-radius: 60px;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #fef7cf;
+            background: #2e3a20;
+            padding: 8px;
+        }
+        /* 灌溉中花草高亮效果 */
+        .irrigating-highlight {
+            filter: drop-shadow(0 0 12px #7effaa);
+            background-color: rgba(100, 180, 70, 0.7) !important;
+            transition: all 0.2s;
+        }
+    </style>
+</head>
+<body>
+
+<div class="garden-container" id="gardenApp">
+    <!-- 三盏灯区域 (上方中部) -->
+    <div class="lamps-area">
+        <div class="lamps">
+            <div class="lamp">
+                <div class="lamp-light" id="lampWater"></div>
+                <div class="lamp-label">💧 蓄水池</div>
+            </div>
+            <div class="lamp">
+                <div class="lamp-light" id="lampSoil"></div>
+                <div class="lamp-label">🌿 土壤湿度</div>
+            </div>
+            <div class="lamp">
+                <div class="lamp-light" id="lampTemp"></div>
+                <div class="lamp-label">🌡️ 土壤温度 &lt;28℃</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scene">
+        <!-- 地面以上 花草+温度计 -->
+        <div class="ground">
+            <div class="above-ground">
+                <!-- 花花草草区域，可点击 -->
+                <div class="flowers-area" id="flowersClick">
+                    <div class="flower-group">
+                        <div class="flower">
+                            <div class="petals"></div>
+                            <div class="stem"></div>
+                            <div class="leaf"></div>
+                        </div>
+                        <div class="flower">
+                            <div class="petals" style="background:#ffac77; box-shadow:-8px -5px 0 #ff9170,8px -5px 0 #ff9170,-5px 8px 0 #ff9170,5px 8px 0 #ff9170;"></div>
+                            <div class="stem"></div>
+                        </div>
+                        <div class="grass-tuft"></div>
+                        <div class="flower">
+                            <div class="petals" style="background:#e8b0ff;"></div>
+                            <div class="stem"></div>
+                        </div>
+                    </div>
+                    <div style="font-size:12px; margin-top:6px; color:#fff3bf; text-align:center;">🌱 花花草草 (点击)</div>
+                </div>
+
+                <!-- 温度计区域 -->
+                <div class="thermometer-area" id="thermometerClick">
+                    <div class="thermometer">
+                        <div class="mercury" id="tempMercury"></div>
+                        <div class="temp-bulb"></div>
+                    </div>
+                    <div class="temp-label">🌡️ 土壤温度 &lt;28℃</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 地下蓄水池 -->
+        <div class="underground">
+            <div class="pool-container" id="poolClick">
+                <div class="pool">
+                    <div class="water-wave"></div>
+                </div>
+                <div class="pool-text">💧 地下蓄水池 (点击)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 状态信息栏 -->
+    <div class="info-panel">
+        <div class="status-badge">
+            <div class="status-item">💧 蓄水池: <span id="statWater">❌ 缺水</span></div>
+            <div class="status-item">🌾 土壤干燥: <span id="statSoil">❌ 不干燥</span></div>
+            <div class="status-item">❄️ 土壤温度&lt;28℃: <span id="statTemp">❌ 否</span></div>
+        </div>
+        <div class="action-log" id="actionLog">
+            🧾 点击元件，点亮绿灯
+        </div>
+    </div>
+    <footer>🌦️ 三盏绿灯全亮 → 启动持续5秒灌溉！(温度小于28℃即为低温状态)</footer>
+</div>
+<div id="irrigatingMask" class="irrigating-mask">
+    <div class="message">💧 灌溉中，请稍候... 5秒 💧</div>
+</div>
+
+<script>
+    // ----- 灌溉系统状态 -----
+    let waterFull = false;      // 蓄水池够水
+    let soilDry = false;        // 土壤干燥
+    let soilTempLow = false;    // 土壤温度 <28℃
+    
+    let isIrrigating = false;           // 灌溉进行中（禁止再次触发）
+    let irrigateInterval = null;        // 灌溉期间水滴动画定时器
+    let irrigateTimeout = null;         // 5秒重置定时器
+    
+    // DOM 元素
+    const lampWater = document.getElementById('lampWater');
+    const lampSoil = document.getElementById('lampSoil');
+    const lampTemp = document.getElementById('lampTemp');
+    
+    const statWaterSpan = document.getElementById('statWater');
+    const statSoilSpan = document.getElementById('statSoil');
+    const statTempSpan = document.getElementById('statTemp');
+    const actionLogDiv = document.getElementById('actionLog');
+    
+    const flowersArea = document.getElementById('flowersClick');
+    const thermometerArea = document.getElementById('thermometerClick');
+    const poolArea = document.getElementById('poolClick');
+    
+    const tempMercury = document.getElementById('tempMercury');
+    const maskDiv = document.getElementById('irrigatingMask');
+    
+    // 辅助：更新UI灯、文字状态
+    function updateUIFromState() {
+        // 灯
+        if (waterFull) {
+            lampWater.classList.add('green-lit');
+        } else {
+            lampWater.classList.remove('green-lit');
+        }
+        
+        if (soilDry) {
+            lampSoil.classList.add('green-lit');
+        } else {
+            lampSoil.classList.remove('green-lit');
+        }
+        
+        if (soilTempLow) {
+            lampTemp.classList.add('green-lit');
+        } else {
+            lampTemp.classList.remove('green-lit');
+        }
+        
+        // 文本显示 “够水=1”风格，以及土壤温度<28℃对应显示
+        statWaterSpan.innerText = waterFull ? '✅ 够水=1' : '❌ 缺水=0';
+        statSoilSpan.innerText = soilDry ? '⚠️ 干燥=1' : '💧 湿润=0';
+        statTempSpan.innerText = soilTempLow ? '❄️ <28℃ =1' : '🌡️ ≥28℃ =0';
+        
+        // 温度计汞柱视觉：温度低于28℃时汞柱变蓝且变低
+        if (soilTempLow) {
+            tempMercury.style.height = '18%';
+            tempMercury.style.background = '#7fc9ff';
+        } else {
+            tempMercury.style.height = '35%';
+            tempMercury.style.background = '#ff7256';
+        }
+    }
+    
+    // 记录日志并附加到面板
+    function addLog(message, isError = false) {
+        const logSpan = document.createElement('span');
+        logSpan.textContent = message;
+        logSpan.style.display = 'inline-block';
+        logSpan.style.marginRight = '12px';
+        logSpan.style.background = isError ? '#aa2e2e' : '#4f7942';
+        logSpan.style.padding = '2px 12px';
+        logSpan.style.borderRadius = '24px';
+        logSpan.style.fontSize = '0.8rem';
+        actionLogDiv.innerHTML = '';
+        actionLogDiv.appendChild(logSpan);
+        // 5秒后如果未被覆盖则重置占位符（不干扰灌溉过程）
+        setTimeout(() => {
+            if (actionLogDiv.firstChild === logSpan && !isIrrigating) {
+                if (actionLogDiv.childNodes.length === 1) {
+                    actionLogDiv.innerHTML = '🧾 点击元件，点亮绿灯';
+                }
+            }
+        }, 4000);
+    }
+    
+    // 重置所有条件（不自动触发灌溉）
+    function resetAllConditions(resetLogMsg = false) {
+        waterFull = false;
+        soilDry = false;
+        soilTempLow = false;
+        updateUIFromState();
+        if (resetLogMsg) {
+            addLog('🔄 灌溉周期结束，所有条件已重置，可重新点击元件');
+        }
+    }
+    
+    // 生成单个水滴特效 (位置基于花草区域)
+    function createWaterDrop() {
+        const flowersRect = flowersArea.getBoundingClientRect();
+        if (flowersRect.width === 0) return;
+        const drop = document.createElement('div');
+        drop.className = 'water-drop';
+        const offsetX = Math.random() * (flowersRect.width - 20) + 10;
+        const offsetY = Math.random() * (flowersRect.height - 10) + 5;
+        drop.style.left = (flowersRect.left + offsetX) + 'px';
+        drop.style.top = (flowersRect.top + offsetY) + 'px';
+        drop.style.width = Math.random() * 14 + 6 + 'px';
+        drop.style.height = drop.style.width;
+        drop.style.background = `rgba(100, 210, 255, ${Math.random() * 0.6 + 0.4})`;
+        document.body.appendChild(drop);
+        setTimeout(() => drop.remove(), 650);
+    }
+    
+    // 开始周期性水滴 (每0.6秒一次，持续灌溉时长)
+    function startContinuousDrip(durationMs) {
+        if (irrigateInterval) clearInterval(irrigateInterval);
+        // 立刻产生一批水滴
+        for (let i = 0; i < 8; i++) setTimeout(() => createWaterDrop(), i * 80);
+        irrigateInterval = setInterval(() => {
+            if (!isIrrigating) {
+                // 安全清理
+                if (irrigateInterval) clearInterval(irrigateInterval);
+                return;
+            }
+            // 每次产生5~10个水滴模拟浇水
+            const dropCount = 6 + Math.floor(Math.random() * 8);
+            for (let i = 0; i < dropCount; i++) {
+                setTimeout(() => createWaterDrop(), i * 40);
+            }
+        }, 550);
+        // 灌溉结束时清理
+        setTimeout(() => {
+            if (irrigateInterval) {
+                clearInterval(irrigateInterval);
+                irrigateInterval = null;
+            }
+        }, durationMs);
+    }
+    
+    // 执行灌溉浇水动作 (持续5秒)
+    function startIrrigation() {
+        if (isIrrigating) return false;
+        // 额外确保三灯真
+        if (!(waterFull && soilDry && soilTempLow)) return false;
+        
+        isIrrigating = true;
+        // 显示遮罩，带有5秒提示
+        maskDiv.style.display = 'flex';
+        
+        addLog('💦 三灯全绿！启动灌溉，将持续浇水5秒 💦');
+        
+        // 给花草区域增加高亮灌溉特效（一直保持到灌溉结束）
+        flowersArea.classList.add('irrigating-highlight');
+        
+        // 开始持续水滴动画 (持续5秒)
+        startContinuousDrip(5000);
+        
+        // 额外在开始瞬间产生大量水滴
+        for (let i = 0; i < 20; i++) {
+            setTimeout(() => createWaterDrop(), i * 60);
+        }
+        
+        // 设置5秒后结束灌溉，重置所有状态并移除特效
+        irrigateTimeout = setTimeout(() => {
+            // 结束灌溉，重置条件
+            addLog('💧 哗啦啦~ 灌溉完成！花草喝饱水啦 🌸 所有条件已重置');
+            
+            // 移除高亮样式
+            flowersArea.classList.remove('irrigating-highlight');
+            
+            // 重置三个条件（灯变灰）
+            resetAllConditions(true);
+            
+            // 隐藏遮罩
+            maskDiv.style.display = 'none';
+            isIrrigating = false;
+            
+            // 清理定时器引用
+            if (irrigateInterval) {
+                clearInterval(irrigateInterval);
+                irrigateInterval = null;
+            }
+            if (irrigateTimeout) irrigateTimeout = null;
+            
+            // 更新UI确保显示重置
+            updateUIFromState();
+            addLog('✅ 灌溉周期结束，可重新点击蓄水池/花草/温度计');
+        }, 5000);  // 持续5秒
+        
+        return true;
+    }
+    
+    // 检查三灯是否全亮，若是则启动灌溉 (前提非灌溉中)
+    function checkAndIrrigate() {
+        if (isIrrigating) return false;
+        if (waterFull && soilDry && soilTempLow) {
+            startIrrigation();
+            return true;
+        }
+        return false;
+    }
+    
+    // ----- 三个点击交互 (遵循规则：显示“xxx=1”并亮对应绿灯) -----
+    // ① 蓄水池
+    function onPoolClick() {
+        if (isIrrigating) {
+            addLog('⏳ 灌溉进行中 (5秒)，请稍后再点击蓄水池', true);
+            return;
+        }
+        if (!waterFull) {
+            waterFull = true;
+            updateUIFromState();
+            addLog('💧 蓄水池够水 = 1  (第一盏绿灯点亮)');
+            checkAndIrrigate();
+        } else {
+            addLog('⚠️ 蓄水池已经够水 (已经是1)，无需重复点击', false);
+        }
+    }
+    
+    // ② 花花草草 (土壤干燥)
+    function onFlowersClick() {
+        if (isIrrigating) {
+            addLog('⏳ 灌溉进行中 (5秒)，请稍后再点击花草', true);
+            return;
+        }
+        if (!soilDry) {
+            soilDry = true;
+            updateUIFromState();
+            addLog('🌿 土壤干燥 = 1  (第二盏绿灯点亮)');
+            checkAndIrrigate();
+        } else {
+            addLog('⚠️ 土壤干燥状态已经是1，无需重复点击', false);
+        }
+    }
+    
+    // ③ 温度计 (土壤温度<28℃)
+    function onThermometerClick() {
+        if (isIrrigating) {
+            addLog('⏳ 灌溉进行中 (5秒)，请稍后再点击温度计', true);
+            return;
+        }
+        if (!soilTempLow) {
+            soilTempLow = true;
+            updateUIFromState();
+            addLog('🌡️ 土壤温度 < 28℃ = 1  (第三盏绿灯点亮)');   // 按照题目要求文本修改
+            checkAndIrrigate();
+        } else {
+            addLog('⚠️ 土壤温度<28℃状态已经是1，无需重复点击', false);
+        }
+    }
+    
+    // 绑定事件
+    poolArea.addEventListener('click', onPoolClick);
+    flowersArea.addEventListener('click', onFlowersClick);
+    thermometerArea.addEventListener('click', onThermometerClick);
+    
+    // 初始化UI
+    function init() {
+        waterFull = false;
+        soilDry = false;
+        soilTempLow = false;
+        updateUIFromState();
+        addLog('✨ 欢迎！点击蓄水池、花草、温度计，三盏绿灯全亮自动持续灌溉5秒！');
+        // 确保温度计汞柱初始样式正常
+        tempMercury.style.height = '35%';
+        tempMercury.style.background = '#ff7256';
+        maskDiv.style.display = 'none';
+        isIrrigating = false;
+        if (irrigateInterval) clearInterval(irrigateInterval);
+        if (irrigateTimeout) clearTimeout(irrigateTimeout);
+        flowersArea.classList.remove('irrigating-highlight');
+    }
+    
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>智能灌溉系统 - 三灯联动浇水花园 (时间灌溉窗口)</title>
+    <style>
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #c8e8ff 0%, #b0d4ee 100%);
+            font-family: 'Segoe UI', 'Poppins', 'Roboto', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* 主卡片容器 */
+        .garden-container {
+            max-width: 1100px;
+            width: 100%;
+            background: #5b8c5a;
+            background-image: radial-gradient(circle at 10% 30%, rgba(80, 110, 70, 0.4) 2%, transparent 2.5%);
+            background-size: 28px 28px;
+            border-radius: 64px 64px 48px 48px;
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.3), inset 0 1px 3px rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+            backdrop-filter: blur(0px);
+            transition: all 0.2s;
+        }
+
+        /* 灯区 (上方中部) */
+        .lamps-area {
+            background: #2e3820;
+            padding: 20px 16px 18px;
+            border-bottom: 6px solid #cfb284;
+            box-shadow: inset 0 -2px 0 #4a5c2c, 0 5px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .lamps {
+            display: flex;
+            justify-content: center;
+            gap: 2.2rem;
+            flex-wrap: wrap;
+        }
+
+        .lamp {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 18px;
+            border-radius: 60px;
+            backdrop-filter: blur(2px);
+        }
+
+        .lamp-light {
+            width: 60px;
+            height: 60px;
+            background-color: #4a4a4a;
+            border-radius: 50%;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255,255,255,0.2);
+            transition: all 0.2s ease;
+            border: 2px solid #f9e0a0;
+        }
+
+        .lamp-label {
+            color: #f9f3cf;
+            font-weight: bold;
+            font-size: 0.85rem;
+            text-shadow: 1px 1px 0 #2c2c1c;
+            letter-spacing: 0.5px;
+            text-align: center;
+            max-width: 130px;
+        }
+
+        /* 绿灯点亮效果 */
+        .lamp-light.green-lit {
+            background-color: #2eff6e;
+            box-shadow: 0 0 20px #32ff6e, 0 0 8px #aaffc0;
+            border-color: #f0ffb0;
+        }
+
+        /* 主场景区 (地面以上 + 地下蓄水池) */
+        .scene {
+            position: relative;
+            padding: 20px 20px 0px 20px;
+        }
+
+        /* 地平线 / 地面层 */
+        .ground {
+            position: relative;
+            background: #7c5e3a;
+            background: linear-gradient(180deg, #8b6946 0%, #5e3e1e 100%);
+            border-radius: 80px 80px 0 0;
+            min-height: 280px;
+            border-bottom: 4px solid #4a3520;
+            box-shadow: inset 0 5px 8px rgba(0,0,0,0.1);
+            z-index: 2;
+        }
+
+        /* 地上区域: 花草 + 时钟 布局 */
+        .above-ground {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            padding: 20px 30px 40px;
+            gap: 40px;
+            flex-wrap: wrap;
+            min-height: 260px;
+        }
+
+        /* 花草区块 */
+        .flowers-area {
+            background: rgba(80, 110, 50, 0.2);
+            border-radius: 100px;
+            padding: 15px 30px 10px 30px;
+            cursor: pointer;
+            transition: transform 0.1s ease, background 0.2s;
+            text-align: center;
+        }
+        .flowers-area:hover {
+            transform: scale(1.02);
+            background: rgba(110, 150, 70, 0.4);
+        }
+        .flowers-area:active {
+            transform: scale(0.98);
+        }
+
+        .flower-group {
+            display: flex;
+            gap: 18px;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        .flower {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .petals {
+            background: #ffb7c5;
+            width: 38px;
+            height: 38px;
+            border-radius: 50% 50% 50% 50%;
+            box-shadow: -8px -5px 0 #ff9eb0, 8px -5px 0 #ff9eb0, -5px 8px 0 #ff9eb0, 5px 8px 0 #ff9eb0;
+            background-color: #ff6f91;
+            transition: all 0.2s;
+        }
+        .stem {
+            width: 6px;
+            height: 35px;
+            background: #3a754a;
+            margin-top: 4px;
+            border-radius: 3px;
+        }
+        .leaf {
+            width: 14px;
+            height: 20px;
+            background: #5fad41;
+            border-radius: 80% 0 60% 20%;
+            margin-left: 8px;
+            transform: rotate(-25deg);
+        }
+        .grass-tuft {
+            width: 10px;
+            height: 22px;
+            background: #4f9a2c;
+            border-radius: 40%;
+            transform: skewX(-5deg);
+        }
+
+        /* 时钟区域 (替换温度计) */
+        .clock-area {
+            background: rgba(220, 200, 150, 0.3);
+            padding: 12px 20px;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: transform 0.1s ease, background 0.2s;
+            min-width: 160px;
+            text-align: center;
+        }
+        .clock-area:hover {
+            background: rgba(240, 210, 130, 0.5);
+            transform: scale(1.02);
+        }
+        .clock-card {
+            background: #f9efcf;
+            border-radius: 48px;
+            padding: 10px 15px;
+            box-shadow: inset 0 1px 4px rgba(0,0,0,0.1), 0 6px 12px rgba(0,0,0,0.2);
+            font-family: monospace;
+        }
+        .digital-clock {
+            font-size: 1.7rem;
+            font-weight: bold;
+            letter-spacing: 3px;
+            background: #2c2e2a;
+            color: #a6ff9e;
+            padding: 6px 12px;
+            border-radius: 36px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 3px #32ff6e;
+        }
+        .time-condition {
+            font-size: 0.7rem;
+            background: #4a3e28;
+            color: #ffecb3;
+            margin-top: 8px;
+            padding: 4px 8px;
+            border-radius: 24px;
+            display: inline-block;
+        }
+        .clock-label {
+            margin-top: 8px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: #fff3cf;
+            background: #2e3820aa;
+            border-radius: 40px;
+            padding: 4px 8px;
+        }
+
+        /* 地下蓄水池区域 */
+        .underground {
+            background: #4b2e1a;
+            margin-top: -6px;
+            padding: 20px 30px 30px;
+            border-radius: 0 0 60px 60px;
+            box-shadow: inset 0 8px 12px rgba(0,0,0,0.2), 0 -2px 0 #997a48;
+            position: relative;
+            z-index: 1;
+        }
+        .pool-container {
+            background: #9b7c5b;
+            border-radius: 48px;
+            padding: 10px;
+            cursor: pointer;
+            transition: 0.1s linear;
+            border: 2px solid #ebc28e;
+        }
+        .pool-container:hover {
+            background: #ad8f6b;
+            transform: translateY(-2px);
+        }
+        .pool {
+            background: #245b6e;
+            background: linear-gradient(145deg, #1d8bb0, #146b8a);
+            height: 100px;
+            border-radius: 30px;
+            box-shadow: inset 0 5px 6px rgba(0,0,0,0.3), 0 2px 4px rgba(255,255,200,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .water-wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70%;
+            background: rgba(90, 210, 240, 0.6);
+            border-radius: 50% 50% 30px 30px;
+        }
+        .pool-text {
+            text-align: center;
+            margin-top: 8px;
+            font-weight: bold;
+            color: #fff3cf;
+            text-shadow: 2px 2px 0 #3e2a17;
+        }
+
+        /* 消息面板 & 状态显示 */
+        .info-panel {
+            background: #2f2b20e0;
+            backdrop-filter: blur(8px);
+            margin: 20px;
+            padding: 12px 20px;
+            border-radius: 48px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            color: white;
+            font-weight: bold;
+            border: 1px solid #ecd48c;
+        }
+        .status-badge {
+            background: #181e0e;
+            padding: 8px 14px;
+            border-radius: 36px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #3a3522;
+            padding: 4px 12px;
+            border-radius: 36px;
+        }
+        .action-log {
+            background: #1f2a0e;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        button {
+            background: none;
+            border: none;
+        }
+        .water-drop {
+            position: absolute;
+            background: #7dd3fc;
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            animation: splash 0.6s ease-out forwards;
+            pointer-events: none;
+        }
+        @keyframes splash {
+            0% { opacity: 0.8; transform: scale(0.2);}
+            100% { opacity: 0; transform: scale(2.5);}
+        }
+        /* 灌溉中禁用点击遮罩 */
+        .irrigating-mask {
+            position: fixed;
+            top:0;
+            left:0;
+            right:0;
+            bottom:0;
+            background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+            pointer-events: all;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 8px green;
+            flex-direction: column;
+        }
+        .irrigating-mask .message {
+            background: rgba(0,0,0,0.7);
+            padding: 12px 28px;
+            border-radius: 60px;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #fef7cf;
+            background: #2e3a20;
+            padding: 8px;
+        }
+        .irrigating-highlight {
+            filter: drop-shadow(0 0 12px #7effaa);
+            background-color: rgba(100, 180, 70, 0.7) !important;
+            transition: all 0.2s;
+        }
+    </style>
+</head>
+<body>
+
+<div class="garden-container" id="gardenApp">
+    <!-- 三盏灯区域 (上方中部) -->
+    <div class="lamps-area">
+        <div class="lamps">
+            <div class="lamp">
+                <div class="lamp-light" id="lampWater"></div>
+                <div class="lamp-label">💧 蓄水池</div>
+            </div>
+            <div class="lamp">
+                <div class="lamp-light" id="lampSoil"></div>
+                <div class="lamp-label">🌿 土壤湿度</div>
+            </div>
+            <div class="lamp">
+                <div class="lamp-light" id="lampClock"></div>
+                <div class="lamp-label">⏰ 时间窗口<br>16:00~次日09:00</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scene">
+        <!-- 地面以上 花草 + 时钟 -->
+        <div class="ground">
+            <div class="above-ground">
+                <!-- 花花草草区域，可点击 -->
+                <div class="flowers-area" id="flowersClick">
+                    <div class="flower-group">
+                        <div class="flower">
+                            <div class="petals"></div>
+                            <div class="stem"></div>
+                            <div class="leaf"></div>
+                        </div>
+                        <div class="flower">
+                            <div class="petals" style="background:#ffac77; box-shadow:-8px -5px 0 #ff9170,8px -5px 0 #ff9170,-5px 8px 0 #ff9170,5px 8px 0 #ff9170;"></div>
+                            <div class="stem"></div>
+                        </div>
+                        <div class="grass-tuft"></div>
+                        <div class="flower">
+                            <div class="petals" style="background:#e8b0ff;"></div>
+                            <div class="stem"></div>
+                        </div>
+                    </div>
+                    <div style="font-size:12px; margin-top:6px; color:#fff3bf; text-align:center;">🌱 花花草草 (点击)</div>
+                </div>
+
+                <!-- 时钟区域 (替代温度计) -->
+                <div class="clock-area" id="clockClick">
+                    <div class="clock-card">
+                        <div class="digital-clock" id="liveClock">--:--:--</div>
+                        <div class="time-condition" id="timeHint">⏰ 点击检测时段</div>
+                    </div>
+                    <div class="clock-label">🕒 灌溉时段时钟 (点击)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 地下蓄水池 -->
+        <div class="underground">
+            <div class="pool-container" id="poolClick">
+                <div class="pool">
+                    <div class="water-wave"></div>
+                </div>
+                <div class="pool-text">💧 地下蓄水池 (点击)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 状态信息栏 -->
+    <div class="info-panel">
+        <div class="status-badge">
+            <div class="status-item">💧 蓄水池: <span id="statWater">❌ 缺水</span></div>
+            <div class="status-item">🌾 土壤干燥: <span id="statSoil">❌ 不干燥</span></div>
+            <div class="status-item">⏰ 时间窗口(16-09): <span id="statTime">❌ 未满足</span></div>
+        </div>
+        <div class="action-log" id="actionLog">
+            🧾 点击元件，点亮绿灯
+        </div>
+    </div>
+    <footer>🌙 灌溉时段: 16:00 ~ 次日09:00  (点击时钟若在时段内则点亮第三盏灯)</footer>
+</div>
+<div id="irrigatingMask" class="irrigating-mask">
+    <div class="message">💧 灌溉中，请稍候... 5秒 💧</div>
+</div>
+
+<script>
+    // ----- 灌溉系统状态 -----
+    let waterFull = false;          // 蓄水池够水
+    let soilDry = false;            // 土壤干燥
+    let timeSlotValid = false;      // 当前时间位于16:00 ~ 次日09:00 (点击时钟时根据真实时间判定)
+
+    let isIrrigating = false;       // 灌溉进行中
+    let irrigateInterval = null;    // 水滴动画定时器
+    let irrigateTimeout = null;     // 5秒重置定时器
+
+    // DOM 元素
+    const lampWater = document.getElementById('lampWater');
+    const lampSoil = document.getElementById('lampSoil');
+    const lampClock = document.getElementById('lampClock');
+
+    const statWaterSpan = document.getElementById('statWater');
+    const statSoilSpan = document.getElementById('statSoil');
+    const statTimeSpan = document.getElementById('statTime');
+
+    const actionLogDiv = document.getElementById('actionLog');
+
+    const flowersArea = document.getElementById('flowersClick');
+    const clockArea = document.getElementById('clockClick');
+    const poolArea = document.getElementById('poolClick');
+
+    const liveClockDiv = document.getElementById('liveClock');
+    const timeHintSpan = document.getElementById('timeHint');
+    const maskDiv = document.getElementById('irrigatingMask');
+
+    // 辅助函数：判断当前时间是否在 16:00 至 次日 09:00
+    function isInWateringTimeWindow() {
+        const now = new Date();
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const currentTotalMinutes = hours * 60 + minutes;
+        // 窗口起点: 16:00 = 960分钟；终点: 次日09:00 = 540分钟 (次日)
+        const startMinutes = 16 * 60;      // 960
+        const endMinutes = 9 * 60;         // 540 (次日)
+        if (startMinutes <= currentTotalMinutes && currentTotalMinutes <= 24*60 -1) {
+            // 当天 16:00 ~ 23:59
+            return true;
+        }
+        if (currentTotalMinutes >= 0 && currentTotalMinutes <= endMinutes) {
+            // 次日 00:00 ~ 09:00
+            return true;
+        }
+        return false;
+    }
+
+    // 更新实时时钟显示 (每秒刷新)
+    function updateClockDisplay() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        liveClockDiv.innerText = `${hours}:${minutes}:${seconds}`;
+        // 辅助提示当前是否在时段内 (不影响状态，只做视觉参考)
+        const inWindow = isInWateringTimeWindow();
+        if (inWindow) {
+            timeHintSpan.innerHTML = '✅ 当前时段有效 (16:00~次日09:00)';
+            timeHintSpan.style.background = '#2b6e3c';
+        } else {
+            timeHintSpan.innerHTML = '⏳ 当前不在灌溉时段 (无法点亮时钟灯)';
+            timeHintSpan.style.background = '#7a4a2a';
+        }
+    }
+
+    // 更新UI灯、文字状态
+    function updateUIFromState() {
+        // 第一盏: 蓄水池
+        if (waterFull) lampWater.classList.add('green-lit');
+        else lampWater.classList.remove('green-lit');
+        // 第二盏: 土壤干燥
+        if (soilDry) lampSoil.classList.add('green-lit');
+        else lampSoil.classList.remove('green-lit');
+        // 第三盏: 时间窗口有效
+        if (timeSlotValid) lampClock.classList.add('green-lit');
+        else lampClock.classList.remove('green-lit');
+
+        statWaterSpan.innerText = waterFull ? '✅ 够水=1' : '❌ 缺水=0';
+        statSoilSpan.innerText = soilDry ? '⚠️ 干燥=1' : '💧 湿润=0';
+        statTimeSpan.innerText = timeSlotValid ? '✅ 时段满足=1' : '❌ 未满足=0';
+    }
+
+    // 记录日志
+    function addLog(message, isError = false) {
+        const logSpan = document.createElement('span');
+        logSpan.textContent = message;
+        logSpan.style.display = 'inline-block';
+        logSpan.style.marginRight = '12px';
+        logSpan.style.background = isError ? '#aa2e2e' : '#4f7942';
+        logSpan.style.padding = '2px 12px';
+        logSpan.style.borderRadius = '24px';
+        logSpan.style.fontSize = '0.8rem';
+        actionLogDiv.innerHTML = '';
+        actionLogDiv.appendChild(logSpan);
+        setTimeout(() => {
+            if (actionLogDiv.firstChild === logSpan && !isIrrigating) {
+                if (actionLogDiv.childNodes.length === 1) {
+                    actionLogDiv.innerHTML = '🧾 点击元件，点亮绿灯';
+                }
+            }
+        }, 4000);
+    }
+
+    // 重置所有条件 (灌溉完成后)
+    function resetAllConditions(resetLogMsg = false) {
+        waterFull = false;
+        soilDry = false;
+        timeSlotValid = false;
+        updateUIFromState();
+        if (resetLogMsg) {
+            addLog('🔄 灌溉周期结束，所有条件已重置，可重新点击元件');
+        }
+    }
+
+    // 水滴特效
+    function createWaterDrop() {
+        const flowersRect = flowersArea.getBoundingClientRect();
+        if (flowersRect.width === 0) return;
+        const drop = document.createElement('div');
+        drop.className = 'water-drop';
+        const offsetX = Math.random() * (flowersRect.width - 20) + 10;
+        const offsetY = Math.random() * (flowersRect.height - 10) + 5;
+        drop.style.left = (flowersRect.left + offsetX) + 'px';
+        drop.style.top = (flowersRect.top + offsetY) + 'px';
+        drop.style.width = Math.random() * 14 + 6 + 'px';
+        drop.style.height = drop.style.width;
+        drop.style.background = `rgba(100, 210, 255, ${Math.random() * 0.6 + 0.4})`;
+        document.body.appendChild(drop);
+        setTimeout(() => drop.remove(), 650);
+    }
+
+    function startContinuousDrip(durationMs) {
+        if (irrigateInterval) clearInterval(irrigateInterval);
+        for (let i = 0; i < 8; i++) setTimeout(() => createWaterDrop(), i * 80);
+        irrigateInterval = setInterval(() => {
+            if (!isIrrigating) {
+                if (irrigateInterval) clearInterval(irrigateInterval);
+                return;
+            }
+            const dropCount = 6 + Math.floor(Math.random() * 8);
+            for (let i = 0; i < dropCount; i++) {
+                setTimeout(() => createWaterDrop(), i * 40);
+            }
+        }, 550);
+        setTimeout(() => {
+            if (irrigateInterval) {
+                clearInterval(irrigateInterval);
+                irrigateInterval = null;
+            }
+        }, durationMs);
+    }
+
+    // 开始灌溉 (持续5秒)
+    function startIrrigation() {
+        if (isIrrigating) return false;
+        if (!(waterFull && soilDry && timeSlotValid)) return false;
+
+        isIrrigating = true;
+        maskDiv.style.display = 'flex';
+        addLog('💦 三灯全绿！启动灌溉，将持续浇水5秒 💦');
+
+        flowersArea.classList.add('irrigating-highlight');
+        startContinuousDrip(5000);
+        for (let i = 0; i < 20; i++) {
+            setTimeout(() => createWaterDrop(), i * 60);
+        }
+
+        irrigateTimeout = setTimeout(() => {
+            addLog('💧 哗啦啦~ 灌溉完成！花草喝饱水啦 🌸 所有条件已重置');
+            flowersArea.classList.remove('irrigating-highlight');
+            resetAllConditions(true);
+            maskDiv.style.display = 'none';
+            isIrrigating = false;
+            if (irrigateInterval) {
+                clearInterval(irrigateInterval);
+                irrigateInterval = null;
+            }
+            if (irrigateTimeout) irrigateTimeout = null;
+            updateUIFromState();
+            addLog('✅ 灌溉周期结束，可重新点击蓄水池/花草/时钟');
+        }, 5000);
+        return true;
+    }
+
+    function checkAndIrrigate() {
+        if (isIrrigating) return false;
+        if (waterFull && soilDry && timeSlotValid) {
+            startIrrigation();
+            return true;
+        }
+        return false;
+    }
+
+    // ---------- 三个交互 ----------
+    // ① 蓄水池
+    function onPoolClick() {
+        if (isIrrigating) {
+            addLog('⏳ 灌溉进行中 (5秒)，请稍后再点击蓄水池', true);
+            return;
+        }
+        if (!waterFull) {
+            waterFull = true;
+            updateUIFromState();
+            addLog('💧 蓄水池够水 = 1  (第一盏绿灯点亮)');
+            checkAndIrrigate();
+        } else {
+            addLog('⚠️ 蓄水池已经够水 (已经是1)，无需重复点击', false);
+        }
+    }
+
+    // ② 花花草草 (土壤干燥)
+    function onFlowersClick() {
+        if (isIrrigating) {
+            addLog('⏳ 灌溉进行中 (5秒)，请稍后再点击花草', true);
+            return;
+        }
+        if (!soilDry) {
+            soilDry = true;
+            updateUIFromState();
+            addLog('🌿 土壤干燥 = 1  (第二盏绿灯点亮)');
+            checkAndIrrigate();
+        } else {
+            addLog('⚠️ 土壤干燥状态已经是1，无需重复点击', false);
+        }
+    }
+
+    // ③ 时钟: 根据当前实际时间判定是否满足 16:00 ~ 次日09:00
+    function onClockClick() {
+        if (isIrrigating) {
+            addLog('⏳ 灌溉进行中 (5秒)，请稍后再点击时钟', true);
+            return;
+        }
+        // 实时判断当前时间
+        const inWindow = isInWateringTimeWindow();
+        if (!timeSlotValid) {
+            if (inWindow) {
+                timeSlotValid = true;
+                updateUIFromState();
+                addLog('⏰ 当前时间位于 16:00 至次日09:00 = 1  (第三盏绿灯点亮)');
+                checkAndIrrigate();
+            } else {
+                // 不在时段内, 无法点亮
+                const now = new Date();
+                const hour = now.getHours();
+                const minute = now.getMinutes();
+                addLog(`❌ 当前时间 ${hour.toString().padStart(2,'0')}:${minute.toString().padStart(2,'0')} 不在灌溉时段(16:00~次日09:00)，无法点亮绿灯`, true);
+            }
+        } else {
+            addLog('⚠️ 时间窗口条件已经是满足状态 (1)，无需重复点击', false);
+        }
+    }
+
+    // 绑定事件
+    poolArea.addEventListener('click', onPoolClick);
+    flowersArea.addEventListener('click', onFlowersClick);
+    clockArea.addEventListener('click', onClockClick);
+
+    // 初始化: 时钟动态刷新, 状态重置
+    function init() {
+        waterFull = false;
+        soilDry = false;
+        timeSlotValid = false;
+        updateUIFromState();
+        updateClockDisplay();
+        setInterval(updateClockDisplay, 1000);
+        maskDiv.style.display = 'none';
+        isIrrigating = false;
+        if (irrigateInterval) clearInterval(irrigateInterval);
+        if (irrigateTimeout) clearTimeout(irrigateTimeout);
+        flowersArea.classList.remove('irrigating-highlight');
+        addLog('✨ 欢迎！点击蓄水池、花草、时钟 (时段内可点亮第三盏灯)，三灯全绿自动持续灌溉5秒');
+    }
+
+    init();
+</script>
+</body>
+</html>
