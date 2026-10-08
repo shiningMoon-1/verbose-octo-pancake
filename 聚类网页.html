@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K-Means 聚类模拟 · 云溪市积水点</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: linear-gradient(135deg, #eef2f7 0%, #e4eaf2 100%);
+    color: #1f2937;
+    overflow: hidden;
+  }
+
+  .app {
+    display: flex;
+    gap: 14px;
+    height: 100vh;
+    padding: 14px;
+  }
+
+  /* ---------- 画布区 ---------- */
+  .stage-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .stage {
+    position: relative;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 30px rgba(20,40,80,.12);
+    overflow: hidden;
+  }
+  canvas { display: block; cursor: crosshair; }
+
+  /* ---------- 右侧面板：两列 ---------- */
+  .panel {
+    width: 640px;
+    flex: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-content: start;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 6px;
+  }
+  .panel::-webkit-scrollbar { width: 5px; }
+  .panel::-webkit-scrollbar-thumb { background: #c8d2e0; border-radius: 3px; }
+  .span2 { grid-column: span 2; }
+
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 4px 16px rgba(20,40,80,.08);
+    min-width: 0;
+  }
+  .card h1 { font-size: 16px; letter-spacing: .3px; margin-bottom: 3px; }
+  .card h2 {
+    font-size: 11px; color: #8794a8; font-weight: 600;
+    letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .sub { font-size: 12px; color: #7c8899; }
+
+  .title-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .btn-row { display: flex; gap: 8px; flex: none; }
+
+  .reset-btn {
+    flex: none;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    background: #1f2937;
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .4px;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    box-shadow: 0 3px 10px rgba(31,41,55,.25);
+    white-space: nowrap;
+  }
+  .reset-btn:hover { background: #111827; }
+  .reset-btn:active { transform: scale(.95); }
+
+  .record-btn {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    box-shadow: 0 3px 10px rgba(37,99,235,.35);
+  }
+  .record-btn:hover { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+
+  /* ---------- SSE 徽章 ---------- */
+  .sse-badge {
+    font-size: 11px;
+    font-weight: 700;
+    font-family: "Consolas", "Menlo", monospace;
+    color: #94a3b8;
+    background: #f1f5f9;
+    border-radius: 20px;
+    padding: 3px 10px;
+    letter-spacing: .2px;
+    text-transform: none;
+    transition: color .2s, background .2s;
+    white-space: nowrap;
+  }
+  .sse-badge.on { color: #1d4ed8; background: #e0ebff; }
+
+  /* ---------- 状态行 ---------- */
+  .status-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .status-wrap .status {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .status {
+    font-size: 13px;
+    line-height: 1.75;
+    color: #374151;
+    padding: 8px 0 8px 12px;
+    border-left: 4px solid #cbd5e1;
+    border-radius: 2px;
+    transition: all .25s;
+  }
+  .status b { color: #111827; }
+  .status.st-pick   { border-color: #f59e0b; background: #fffbeb; }
+  .status.st-assign { border-color: #3b82f6; background: #eff6ff; }
+  .status.st-compute{ border-color: #8b5cf6; background: #f5f3ff; }
+  .status.st-done   { border-color: #10b981; background: #ecfdf5; }
+
+  /* 自动按钮通用 */
+  .auto-btn {
+    flex: none;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border: none;
+    border-radius: 22px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .18s, transform .1s, box-shadow .18s;
+  }
+  .auto-btn:active { transform: scale(.95); }
+
+  .auto-btn-blue {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    box-shadow: 0 4px 12px rgba(37,99,235,.35);
+  }
+  .auto-btn-blue:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: 0 6px 16px rgba(37,99,235,.45);
+  }
+  .auto-btn-purple {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    box-shadow: 0 4px 12px rgba(124,58,237,.35);
+  }
+  .auto-btn-purple:hover {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    box-shadow: 0 6px 16px rgba(124,58,237,.45);
+  }
+
+  /* ---------- 公式 ---------- */
+  .formula {
+    font-family: "Cambria Math", "Times New Roman", serif;
+    font-size: 14.5px;
+    text-align: center;
+    color: #1e3a5f;
+    background: #f7fafd;
+    border: 1px dashed #c7d7e8;
+    border-radius: 8px;
+    padding: 12px 6px;
+    letter-spacing: .2px;
+    line-height: 1.5;
+  }
+  .formula sub { font-size: 10px; }
+
+  /* ---------- 距离列表 ---------- */
+  .dist-list { font-size: 12.5px; line-height: 1.8; color: #374151; }
+  .muted { color: #9aa5b5; font-size: 12px; }
+  .drow { display: flex; align-items: center; gap: 7px; padding: 1px 0; }
+  .drow .swatch {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex: none; box-shadow: 0 0 0 2px rgba(0,0,0,.05);
+  }
+  .drow .dval {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: #0f172a;
+    font-family: "Consolas", monospace;
+  }
+  .dnote {
+    margin-top: 7px; padding-top: 7px;
+    border-top: 1px dashed #e2e8f0;
+    font-size: 12px; color: #64748b;
+  }
+
+  /* ---------- 计算过程 ---------- */
+  .calc {
+    font-size: 12px;
+    line-height: 1.85;
+    font-family: "Consolas", "Menlo", monospace;
+    color: #334155;
+  }
+  .cl-title {
+    font-weight: 700; margin-bottom: 6px; font-size: 13px;
+    font-family: "Segoe UI", "PingFang SC", sans-serif;
+  }
+  .cl-line {
+    white-space: nowrap;
+    overflow-x: auto;
+    padding-left: 2px;
+    padding-bottom: 1px;
+  }
+  .cl-line::-webkit-scrollbar { height: 3px; }
+  .cl-line::-webkit-scrollbar-thumb { background: #d5dde8; border-radius: 2px; }
+  .cl-lab { display: inline-block; width: 24px; color: #94a3b8; font-weight: 700; }
+  .cl-line b { color: #0f172a; }
+  .hl { color: #dc2626 !important; background: #fef2f2; padding: 0 4px; border-radius: 3px; }
+  .newc {
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed #e2e8f0;
+    color: #0f172a; font-weight: 700;
+    font-family: "Segoe UI", "PingFang SC", sans-serif;
+    font-size: 12.5px;
+  }
+
+  /* ---------- Toast ---------- */
+  #toast {
+    position: fixed;
+    top: 22px;
+    left: 50%;
+    transform: translate(-50%, -90px);
+    opacity: 0;
+    background: #1f2937;
+    color: #fff;
+    padding: 12px 26px;
+    border-radius: 30px;
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: .3px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.3);
+    transition: transform .45s cubic-bezier(.2,.9,.3,1.3), opacity .3s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
+  }
+  #toast.show { transform: translate(-50%, 0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="stage-wrap">
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+    </div>
+  </div>
+
+  <aside class="panel">
+
+    <div class="card span2">
+      <div class="title-flex">
+        <div>
+          <h1>K-Means 聚类模拟</h1>
+          <p class="sub">云溪市积水点 · 归一化数据（14 个样本）</p>
+        </div>
+        <div class="btn-row">
+          <button id="recordBtn" class="reset-btn record-btn">📄 聚类记录</button>
+          <button id="resetBtn" class="reset-btn">↻ 重新聚类</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card span2">
+      <h2>当前状态 <span id="sseBadge" class="sse-badge">SSE —</span></h2>
+      <div class="status-wrap">
+        <div id="status" class="status"></div>
+        <button id="autoAssignBtn"  class="auto-btn auto-btn-blue">⚡ 自动分配</button>
+        <button id="autoCentroidBtn" class="auto-btn auto-btn-purple">🎯 自动更新质心</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>距离公式</h2>
+      <div class="formula">
+        d(P, C) = √[ (x<sub>P</sub> − x<sub>C</sub>)² + (y<sub>P</sub> − y<sub>C</sub>)² ]
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>悬停点信息</h2>
+      <div id="distList" class="dist-list"></div>
+    </div>
+
+    <div class="card span2" id="calcCard" style="display:none">
+      <h2>质心计算过程</h2>
+      <div id="calcLog" class="calc"></div>
+    </div>
+
+  </aside>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ========================================================
+     1. 数据
+     ======================================================== */
+  const DATA = [
+    [0.1641791045, 0.0638297872],
+    [0.2238805970, 0.1063829787],
+    [0.3134328358, 0.1063829787],
+    [0.5522388060, 1.0000000000],
+    [0.0746268657, 0.0638297872],
+    [0.1641791045, 0.4042553191],
+    [0.4925373134, 0.4893617021],
+    [0.0746268657, 0.4893617021],
+    [0.5522388060, 0.3617021277],
+    [0.2537313433, 0.1489361702],
+    [0.1343283582, 0.1914893617],
+    [0.0000000000, 0.0000000000],
+    [0.5522388060, 0.6170212766],
+    [1.0000000000, 0.6808510638]
+  ];
+
+  const COLORS = ['#e74c3c', '#2f6fed', '#27ae60'];
+  const CNAMES = ['红', '蓝', '绿'];
+
+  /* 收敛阈值：越小越灵敏（更严格） */
+  const CONVERGE_EPS = 0.001;
+
+  /* 坐标轴范围 */
+  const xMin = -0.06, xMax = 1.06, yMin = -0.06, yMax = 1.06;
+
+  /* ========================================================
+     2. 画布 & 尺寸
+     ======================================================== */
+  const stage = document.getElementById('stage');
+  const cv    = document.getElementById('cv');
+  const ctx   = cv.getContext('2d');
+  const dpr   = window.devicePixelRatio || 1;
+
+  let W = 600, H = 600;
+  let PL = 60, PT = 60, PR = 580, PB = 550;
+  let FS = 1;
+
+  const X = v => PL + (v - xMin) / (xMax - xMin) * (PR - PL);
+  const Y = v => PB - (v - yMin) / (yMax - yMin) * (PB - PT);
+
+  function resizeCanvas() {
+    const wrap = document.querySelector('.stage-wrap');
+    const size = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight));
+    if (size < 120 || size === W) return;
+
+    W = H = size;
+    stage.style.width  = size + 'px';
+    stage.style.height = size + 'px';
+
+    cv.width  = Math.round(size * dpr);
+    cv.height = Math.round(size * dpr);
+    cv.style.width  = size + 'px';
+    cv.style.height = size + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    PL = Math.round(size * 0.10);
+    PR = Math.round(size * 0.97);
+    PT = Math.round(size * 0.10);
+    PB = Math.round(size * 0.92);
+
+    FS = Math.max(0.85, Math.min(1.35, size / 660));
+  }
+
+  /* ========================================================
+     3. 全局状态
+     ======================================================== */
+  let points = DATA.map(([x, y], i) => ({ id: i, x, y, cluster: null }));
+  let centroids = [];
+  let mode = 'pick';
+  let hovered = null;
+  let recomputed = [false, false, false];
+  let btnShown   = [false, false, false];
+  let btnRects   = [null, null, null];
+  let anim = null;
+  let lastSnapshot = null;
+  let mouseX = -999, mouseY = -999;
+  let pendingQueue = [];     // 待自动计算的簇索引队列
+
+  const statusEl = document.getElementById('status');
+  const distList = document.getElementById('distList');
+  const calcCard = document.getElementById('calcCard');
+  const calcLog  = document.getElementById('calcLog');
+  const autoBtn  = document.getElementById('autoAssignBtn');
+  const autoCentroidBtn = document.getElementById('autoCentroidBtn');
+  const sseBadge = document.getElementById('sseBadge');
+  const recordBtn = document.getElementById('recordBtn');
+
+  /* ========================================================
+     3.5 过程记录 & SSE
+     ======================================================== */
+  const HISTORY_KEY = 'kmeans_history_v1';
+  let history = [];          // 每一步：质心 + SSE
+
+  /* 按“最近质心”计算 SSE（误差平方和，标准 k-means 定义） */
+  function computeSSE(cs) {
+    const per = [], counts = [];
+    for (let i = 0; i < cs.length; i++) { per.push(0); counts.push(0); }
+    let total = 0;
+    if (!cs.length) return { total: 0, per, counts };
+
+    for (const p of points) {
+      let bi = 0, bd = Infinity;
+      for (let i = 0; i < cs.length; i++) {
+        const dx = p.x - cs[i].x, dy = p.y - cs[i].y;
+        const d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; bi = i; }
+      }
+      per[bi] += bd;
+      counts[bi]++;
+      total += bd;
+    }
+    return { total, per, counts };
+  }
+
+  function getRecordPayload() {
+    return {
+      history: history,
+      totalPoints: points.length,
+      data: DATA,
+      updated: Date.now()
+    };
+  }
+
+  function saveHistory() {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(getRecordPayload()));
+    } catch (e) { /* 隐私模式等忽略 */ }
+    window.__kmeansRecord = getRecordPayload();
+  }
+
+  /* 记录一步：只存质心 + 当下的 SSE */
+  function recordStep(type, title, detail) {
+    const sse = computeSSE(centroids);
+    history.push({
+      index: history.length + 1,
+      type: type,
+      title: title,
+      detail: detail || '',
+      centroids: centroids.map(c => ({ x: c.x, y: c.y })),
+      sse: sse.total,
+      ssePer: sse.per,
+      counts: sse.counts,
+      time: Date.now()
+    });
+    saveHistory();
+  }
+
+  let lastSSEText = '';
+  function updateSSEBadge() {
+    let txt;
+    if (centroids.length === 0) {
+      txt = 'SSE —';
+    } else {
+      txt = 'SSE = ' + computeSSE(centroids).total.toFixed(4);
+    }
+    if (txt !== lastSSEText) {
+      lastSSEText = txt;
+      sseBadge.textContent = txt;
+      sseBadge.classList.toggle('on', centroids.length > 0);
+    }
+  }
+
+  let lastRecLabel = '';
+  function updateRecordBtn() {
+    const label = '📄 聚类记录' + (history.length ? ' (' + history.length + ')' : '');
+    if (label !== lastRecLabel) {
+      lastRecLabel = label;
+      recordBtn.textContent = label;
+    }
+  }
+
+  /* ========================================================
+     4. 工具
+     ======================================================== */
+  function hexA(hex, a) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y);
+    c.arcTo(x + w, y, x + w, y + r, r);
+    c.lineTo(x + w, y + h - r);
+    c.arcTo(x + w, y + h, x + w - r, y + h, r);
+    c.lineTo(x + r, y + h);
+    c.arcTo(x, y + h, x, y + h - r, r);
+    c.lineTo(x, y + r);
+    c.arcTo(x, y, x + r, y, r);
+    c.closePath();
+  }
+
+  let toastTimer = null;
+  function toast(msg, dur) {
+    dur = dur || 3800;
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), dur);
+  }
+
+  function nearestCluster(p) {
+    let best = 0, bd = Infinity;
+    centroids.forEach((c, i) => {
+      const d = Math.hypot(p.x - c.x, p.y - c.y);
+      if (d < bd) { bd = d; best = i; }
+    });
+    return best;
+  }
+
+  /* ========================================================
+     5. 绘制
+     ======================================================== */
+  function drawGrid() {
+    ctx.save();
+    ctx.strokeStyle = '#ededed';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    for (let i = 0; i <= 10; i++) {
+      const v = i / 10;
+      const px = X(v), py = Y(v);
+      ctx.beginPath(); ctx.moveTo(px, PT); ctx.lineTo(px, PB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(PL, py); ctx.lineTo(PR, py); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawAxes() {
+    ctx.save();
+    ctx.strokeStyle = '#6b7280';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(PL, Y(0)); ctx.lineTo(PR, Y(0));
+    ctx.moveTo(X(0), PB); ctx.lineTo(X(0), PT);
+    ctx.stroke();
+
+    const tickFont = Math.round(12.5 * FS) + 'px "Segoe UI","PingFang SC",system-ui,sans-serif';
+    ctx.fillStyle = '#5b6675';
+    ctx.font = tickFont;
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let i = 0; i <= 5; i++) {
+      const v = i * 0.2;
+      const px = X(v);
+      ctx.beginPath();
+      ctx.moveTo(px, Y(0)); ctx.lineTo(px, Y(0) + 5); ctx.stroke();
+      ctx.fillText(v.toFixed(1), px, Y(0) + 8);
+    }
+
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i <= 5; i++) {
+      const v = i * 0.2;
+      const py = Y(v);
+      ctx.beginPath();
+      ctx.moveTo(X(0), py); ctx.lineTo(X(0) - 5, py); ctx.stroke();
+      ctx.fillText(v.toFixed(1), X(0) - 8, py);
+    }
+
+    ctx.fillStyle = '#374151';
+    ctx.font = Math.round(13.5 * FS) + 'px "Segoe UI","PingFang SC",system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('归一化积水深度', (PL + PR) / 2, H - Math.round(16 * FS));
+
+    ctx.save();
+    ctx.translate(Math.round(20 * FS), (PT + PB) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText('归一化积水持续时间', 0, 0);
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  function drawStar(cx, cy, r, color) {
+    ctx.save();
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const ang = -Math.PI / 2 + i * Math.PI / 5;
+      const rad = (i % 2 === 0) ? r : r * 0.44;
+      const px = cx + Math.cos(ang) * rad;
+      const py = cy + Math.sin(ang) * rad;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.shadowColor = hexA(color, 0.55);
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawLinkLines() {
+    if (!hovered || centroids.length === 0 || anim) return;
+    if (mode !== 'assign') return;
+    if (hovered.cluster !== null) return;
+
+    centroids.forEach((c, i) => {
+      ctx.save();
+      ctx.setLineDash([6, 5]);
+      ctx.strokeStyle = hexA(COLORS[i], 0.9);
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(X(hovered.x), Y(hovered.y));
+      ctx.lineTo(X(c.x), Y(c.y));
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+
+  function drawPoints() {
+    const r0 = Math.max(5.5, 7 * FS);
+    for (const p of points) {
+      const px = X(p.x), py = Y(p.y);
+      const col = (p.cluster === null) ? null : COLORS[p.cluster];
+      const isHover = (hovered === p);
+
+      if (isHover) {
+        ctx.beginPath();
+        ctx.arc(px, py, r0 * 2.1, 0, Math.PI * 2);
+        ctx.fillStyle = col ? hexA(col, 0.16) : 'rgba(59,130,246,.16)';
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.arc(px, py, r0, 0, Math.PI * 2);
+      ctx.fillStyle = col || '#ffffff';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = col || '#2b3440';
+      ctx.stroke();
+
+      if (mode === 'done' && col) {
+        ctx.beginPath();
+        ctx.arc(px, py, r0 * 1.55, 0, Math.PI * 2);
+        ctx.strokeStyle = hexA(col, 0.3);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+  }
+
+  function drawButtons() {
+    btnRects[0] = btnRects[1] = btnRects[2] = null;
+    if (mode !== 'compute' || anim) return;
+
+    const bw = Math.round(124 * FS);
+    const bh = Math.round(29 * FS);
+
+    for (let i = 0; i < 3; i++) {
+      if (!btnShown[i] || recomputed[i] || !centroids[i]) continue;
+
+      const c = centroids[i];
+      let bx = X(c.x);
+      let by = Y(c.y) - Math.round(46 * FS);
+      if (by < bh / 2 + 8) by = Y(c.y) + Math.round(46 * FS);
+
+      bx = Math.max(bw / 2 + 8, Math.min(W - bw / 2 - 8, bx));
+      by = Math.max(bh / 2 + 8, Math.min(H - bh / 2 - 8, by));
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.2)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 2;
+      roundRect(ctx, bx - bw / 2, by - bh / 2, bw, bh, bh / 2);
+      ctx.fillStyle = COLORS[i];
+      ctx.fill();
+      ctx.restore();
+
+      roundRect(ctx, bx - bw / 2, by - bh / 2, bw, bh, bh / 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.round(12.5 * FS)}px "Segoe UI","PingFang SC",system-ui,sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('重新确定质心', bx, by + 1);
+
+      btnRects[i] = { x: bx - bw / 2, y: by - bh / 2, w: bw, h: bh };
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    drawGrid();
+    drawAxes();
+    drawLinkLines();
+
+    centroids.forEach((c, i) => drawStar(X(c.x), Y(c.y), Math.round(14 * FS), COLORS[i]));
+
+    drawPoints();
+    drawButtons();
+
+    ctx.fillStyle = '#111827';
+    ctx.font = `bold ${Math.round(16 * FS)}px "Segoe UI","PingFang SC",system-ui,sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('云溪市积水点分布（归一化数据）', W / 2, Math.round(40 * FS));
+  }
+
+  /* ========================================================
+     6. 面板更新
+     ======================================================== */
+  function countOf(c) {
+    let n = 0;
+    for (const p of points) if (p.cluster === c) n++;
+    return n;
+  }
+
+  function updateStatus() {
+    let cls = '', txt = '';
+
+    if (mode === 'pick') {
+      cls = 'st-pick';
+      txt = `① <b>选择初始质心</b>　请点击 <b>${3 - centroids.length}</b> 个点作为聚类中心。`;
+    } else if (mode === 'assign') {
+      const rem = points.filter(p => p.cluster === null).length;
+      cls = 'st-assign';
+      txt = `② <b>分配样本点</b>　还剩 <b>${rem}</b> 个点未分配，点击点自动分到最近的质心。`;
+    } else if (mode === 'compute') {
+      const done = recomputed.filter(Boolean).length;
+      cls = 'st-compute';
+      txt = `③ <b>重新计算质心</b>　已完成 <b>${done}/3</b>。悬停聚类点“重新确定质心”，或用右侧“自动更新质心”一键完成。`;
+    } else if (mode === 'done') {
+      cls = 'st-done';
+      txt = `🎉 <b>聚类完成！</b>质心不再移动。　红簇 <b>${countOf(0)}</b> · 蓝簇 <b>${countOf(1)}</b> · 绿簇 <b>${countOf(2)}</b>`;
+    }
+
+    statusEl.className = 'status ' + cls;
+    statusEl.innerHTML = txt;
+
+    /* ----- 自动分配按钮 ----- */
+    const hasUnassigned = points.some(p => p.cluster === null);
+    if (mode === 'assign' && hasUnassigned && !anim) {
+      autoBtn.style.display = 'inline-flex';
+    } else {
+      autoBtn.style.display = 'none';
+    }
+
+    /* ----- 自动更新质心按钮 ----- */
+    const remaining = recomputed.filter((r, i) => !r && centroids[i]).length;
+    if (mode === 'compute' && remaining > 0 && !anim) {
+      autoCentroidBtn.style.display = 'inline-flex';
+    } else {
+      autoCentroidBtn.style.display = 'none';
+    }
+  }
+
+  let lastDistHTML = '';
+  function updateDistPanel() {
+    let html;
+
+    if (!hovered) {
+      html = '<span class="muted">把鼠标移到某个点上查看距离</span>';
+    } else if (centroids.length === 0) {
+      html = '<span class="muted">尚未选择质心</span>';
+    } else {
+      html = centroids.map((c, i) => {
+        const d = Math.hypot(hovered.x - c.x, hovered.y - c.y);
+        return `<div class="drow">
+                  <span class="swatch" style="background:${COLORS[i]}"></span>
+                  <span>到${CNAMES[i]}色质心</span>
+                  <span class="dval">${d.toFixed(4)}</span>
+                </div>`;
+      }).join('');
+
+      if (hovered.cluster !== null) {
+        html += `<div class="dnote">该点已属于
+                   <b style="color:${COLORS[hovered.cluster]}">${CNAMES[hovered.cluster]}色</b> 簇</div>`;
+      }
+    }
+
+    if (html !== lastDistHTML) {
+      lastDistHTML = html;
+      distList.innerHTML = html;
+    }
+  }
+
+  /* ========================================================
+     7. 鼠标检测
+     ======================================================== */
+  function canvasPos(e) {
+    const r = cv.getBoundingClientRect();
+    return {
+      x: (e.clientX - r.left) * (W / r.width),
+      y: (e.clientY - r.top)  * (H / r.height)
+    };
+  }
+
+  function updateHovered() {
+    let found = null, best = Math.max(14, 16 * FS);
+    for (const p of points) {
+      const d = Math.hypot(mouseX - X(p.x), mouseY - Y(p.y));
+      if (d < best) { best = d; found = p; }
+    }
+    hovered = found;
+  }
+
+  function updateButtonsShown() {
+    if (mode !== 'compute' || anim) return;
+    if (hovered && hovered.cluster !== null && !recomputed[hovered.cluster]) {
+      btnShown[hovered.cluster] = true;
+    }
+  }
+
+  function isOnButton(px, py) {
+    for (let i = 0; i < 3; i++) {
+      const r = btnRects[i];
+      if (!r) continue;
+      if (px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h) return i;
+    }
+    return -1;
+  }
+
+  /* ========================================================
+     8. 事件
+     ======================================================== */
+  cv.addEventListener('mousemove', e => {
+    const p = canvasPos(e);
+    mouseX = p.x;
+    mouseY = p.y;
+
+    const onBtn = isOnButton(p.x, p.y);
+    cv.style.cursor = onBtn >= 0 ? 'pointer' : 'crosshair';
+
+    updateHovered();
+  });
+
+  cv.addEventListener('mouseleave', () => {
+    hovered = null;
+  });
+
+  cv.addEventListener('click', e => {
+    if (anim) return;
+    const p = canvasPos(e);
+
+    if (mode === 'compute') {
+      const idx = isOnButton(p.x, p.y);
+      if (idx >= 0) { startRecompute(idx); return; }
+      return;
+    }
+
+    if (!hovered) return;
+
+    /* ---- 阶段一：选择初始质心 ---- */
+    if (mode === 'pick') {
+      if (centroids.length >= 3) return;
+      if (centroids.some(c => c.pid === hovered.id)) return;
+
+      const idx = centroids.length;
+      centroids.push({ x: hovered.x, y: hovered.y, pid: hovered.id });
+      hovered.cluster = idx;
+
+      if (centroids.length === 3) {
+        mode = 'assign';
+        recordStep('init', '选择初始质心',
+          '手动选定 3 个初始聚类中心（' +
+          centroids.map((c, i) => CNAMES[i] + '=(' + c.x.toFixed(3) + ', ' + c.y.toFixed(3) + ')').join('，') + '）');
+        toast('三个质心已选定！现在点击其他点，把它们分配给最近的质心。');
+      } else {
+        toast(`已选择 ${centroids.length} 个质心，还需要 ${3 - centroids.length} 个。`);
+      }
+      updateStatus();
+      return;
+    }
+
+    /* ---- 阶段二：分配到最近的质心 ---- */
+    if (mode === 'assign') {
+      const best = nearestCluster(hovered);
+      if (hovered.cluster === best) return;
+
+      hovered.cluster = best;
+      checkAllAssigned();
+      updateStatus();
+    }
+  });
+
+  /* ========================================================
+     9. 「自动分配」按钮
+     ======================================================== */
+  autoBtn.addEventListener('click', () => {
+    if (mode !== 'assign' || anim) return;
+    if (centroids.length < 3) return;
+
+    let changed = 0;
+    for (const p of points) {
+      if (p.cluster === null) {
+        p.cluster = nearestCluster(p);
+        changed++;
+      }
+    }
+
+    if (changed > 0) {
+      toast(`⚡ 已自动分配 ${changed} 个点`);
+    }
+
+    checkAllAssigned();
+    updateStatus();
+  });
+
+  /* ========================================================
+     10. 「自动更新质心」按钮
+     ======================================================== */
+  autoCentroidBtn.addEventListener('click', () => {
+    if (mode !== 'compute' || anim) return;
+
+    pendingQueue = [];
+    for (let i = 0; i < 3; i++) {
+      if (centroids[i] && !recomputed[i]) pendingQueue.push(i);
+    }
+
+    if (pendingQueue.length === 0) return;
+
+    toast(`🎯 开始自动更新 ${pendingQueue.length} 个质心…`, 3000);
+    processQueue();
+  });
+
+  function processQueue() {
+    if (anim) return;
+    if (mode !== 'compute') { pendingQueue = []; return; }
+    if (pendingQueue.length === 0) return;
+
+    while (pendingQueue.length > 0) {
+      const c = pendingQueue.shift();
+      if (!recomputed[c] && centroids[c]) {
+        startRecompute(c);
+        return;
+      }
+    }
+  }
+
+  /* ========================================================
+     11. 阶段推进
+     ======================================================== */
+  function checkAllAssigned() {
+    if (mode !== 'assign') return;
+    if (points.some(p => p.cluster === null)) return;
+
+    mode = 'compute';
+    lastSnapshot = centroids.map(c => ({ x: c.x, y: c.y }));
+    recomputed = [false, false, false];
+    btnShown   = [false, false, false];
+    pendingQueue = [];
+
+    recordStep('assign', '完成样本分配', '所有样本点都已分配到距离最近的质心');
+
+    toast('所有点都分配完毕！把鼠标悬停在聚类上，或点击“自动更新质心”。');
+  }
+
+  /* ========================================================
+     12. 重新计算质心
+     ======================================================== */
+  function startRecompute(c) {
+    if (anim || mode !== 'compute' || recomputed[c]) return;
+
+    pendingQueue = pendingQueue.filter(x => x !== c);
+
+    const pts = points.filter(p => p.cluster === c);
+    if (pts.length === 0) {
+      recomputed[c] = true;
+      checkAllRecomputed();
+      return;
+    }
+
+    const n    = pts.length;
+    const sumX = pts.reduce((s, p) => s + p.x, 0);
+    const sumY = pts.reduce((s, p) => s + p.y, 0);
+    const nx   = sumX / n;
+    const ny   = sumY / n;
+
+    anim = {
+      cluster: c,
+      fromX: centroids[c].x,
+      fromY: centroids[c].y,
+      toX: nx,
+      toY: ny,
+      t0: performance.now(),
+      dur: 1300
+    };
+
+    showCalcPanel(c, pts, sumX, sumY, nx, ny);
+    btnShown[c] = false;
+    btnRects[c] = null;
+    updateStatus();
+  }
+
+  function showCalcPanel(c, pts, sumX, sumY, nx, ny) {
+    const n  = pts.length;
+    const xs = pts.map(p => p.x.toFixed(3)).join(' + ');
+    const ys = pts.map(p => p.y.toFixed(3)).join(' + ');
+
+    calcLog.innerHTML = `
+      <div class="cl-title" style="color:${COLORS[c]}">
+        ${CNAMES[c]}色簇 · 共 ${n} 个点
+      </div>
+      <div class="cl-line"><span class="cl-lab">Σx</span>= ${xs}</div>
+      <div class="cl-line"><span class="cl-lab"> </span>= <b>${sumX.toFixed(4)}</b></div>
+      <div class="cl-line"><span class="cl-lab">x̄</span>= ${sumX.toFixed(4)} ÷ ${n} =
+        <b class="hl">${nx.toFixed(4)}</b></div>
+
+      <div class="cl-line" style="margin-top:7px"><span class="cl-lab">Σy</span>= ${ys}</div>
+      <div class="cl-line"><span class="cl-lab"> </span>= <b>${sumY.toFixed(4)}</b></div>
+      <div class="cl-line"><span class="cl-lab">ȳ</span>= ${sumY.toFixed(4)} ÷ ${n} =
+        <b class="hl">${ny.toFixed(4)}</b></div>
+
+      <div class="newc">新质心 → ( ${nx.toFixed(4)} , ${ny.toFixed(4)} )</div>
+    `;
+    calcCard.style.display = 'block';
+  }
+
+  /* ========================================================
+     13. 动画
+     ======================================================== */
+  function stepAnim() {
+    const t = Math.min(1, (performance.now() - anim.t0) / anim.dur);
+    const e = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+    const c = anim.cluster;
+    centroids[c].x = anim.fromX + (anim.toX - anim.fromX) * e;
+    centroids[c].y = anim.fromY + (anim.toY - anim.fromY) * e;
+
+    if (t >= 1) {
+      anim = null;
+      finishRecompute(c);
+    }
+  }
+
+  function finishRecompute(c) {
+    points.forEach(p => { if (p.cluster === c) p.cluster = null; });
+    recomputed[c] = true;
+
+    /* ★ 记录这一步：新的质心 + 当下 SSE */
+    const old = lastSnapshot ? lastSnapshot[c] : null;
+    let desc = CNAMES[c] + '色簇质心重新计算完成';
+    if (old) {
+      const mv = Math.hypot(centroids[c].x - old.x, centroids[c].y - old.y);
+      desc = CNAMES[c] + '色簇质心由 (' + old.x.toFixed(3) + ', ' + old.y.toFixed(3) +
+             ') 移动到 (' + centroids[c].x.toFixed(3) + ', ' + centroids[c].y.toFixed(3) +
+             ')，位移 ' + mv.toFixed(4);
+    }
+    recordStep('update', '更新' + CNAMES[c] + '色簇质心', desc);
+
+    if (recomputed.every(Boolean)) {
+      pendingQueue = [];
+      checkAllRecomputed();
+    } else {
+      updateStatus();
+      if (pendingQueue.length > 0) {
+        setTimeout(processQueue, 350);
+      }
+    }
+  }
+
+  function checkAllRecomputed() {
+    if (!recomputed.every(Boolean)) return;
+
+    let converged = true;
+    for (let i = 0; i < 3; i++) {
+      const d = Math.hypot(
+        centroids[i].x - lastSnapshot[i].x,
+        centroids[i].y - lastSnapshot[i].y
+      );
+      if (d > CONVERGE_EPS) { converged = false; break; }
+    }
+
+    if (converged) {
+      mode = 'done';
+      assignAllByNearest();
+      recordStep('done', '聚类完成（收敛）', '所有质心位移均小于阈值，算法收敛，聚类结果已固定');
+      toast('🎉 质心不再移动，聚类完成！', 5000);
+    } else {
+      mode = 'assign';
+      lastSnapshot = centroids.map(c => ({ x: c.x, y: c.y }));
+      recomputed = [false, false, false];
+      btnShown   = [false, false, false];
+      pendingQueue = [];
+      toast('新质心已确定，请重新为未着色的点分配簇。');
+    }
+
+    updateStatus();
+  }
+
+  function assignAllByNearest() {
+    for (const p of points) {
+      p.cluster = nearestCluster(p);
+    }
+  }
+
+  /* ========================================================
+     14. 重置
+     ======================================================== */
+  function resetAll() {
+    points.forEach(p => { p.cluster = null; });
+    centroids = [];
+    mode = 'pick';
+    hovered = null;
+    recomputed = [false, false, false];
+    btnShown   = [false, false, false];
+    btnRects   = [null, null, null];
+    anim = null;
+    lastSnapshot = null;
+    pendingQueue = [];
+
+    /* 清空过程记录，开始新的一次模拟 */
+    history = [];
+    saveHistory();
+
+    calcCard.style.display = 'none';
+    calcLog.innerHTML = '';
+    lastDistHTML = '';
+    lastSSEText = '';
+    lastRecLabel = '';
+
+    updateStatus();
+    updateDistPanel();
+    toast('已重置，请重新选择 3 个初始质心');
+  }
+
+  document.getElementById('resetBtn').addEventListener('click', resetAll);
+
+  /* ========================================================
+     14.5 打开「第 2 页」：聚类过程记录
+     ======================================================== */
+
+  const RECORD_PAGE_HTML = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K-Means 聚类过程记录 · 云溪市积水点</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    background: linear-gradient(135deg,#eef2f7 0%,#e4eaf2 100%);
+    color: #1f2937; min-height: 100vh; padding: 26px 18px 60px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  header { margin-bottom: 16px; }
+  header h1 { font-size: 22px; letter-spacing: .5px; color: #0f172a; }
+  header .sub { font-size: 13px; color: #7c8899; margin-top: 5px; }
+  .stats { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+  .stat {
+    flex: 1; min-width: 150px;
+    background: #fff; border-radius: 12px; padding: 14px 16px;
+    box-shadow: 0 4px 16px rgba(20,40,80,.08);
+  }
+  .stat b { display: block; font-size: 22px; color: #1d4ed8; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 12px; color: #8794a8; letter-spacing: .5px; }
+
+  .card {
+    background: #fff; border-radius: 14px; padding: 16px;
+    box-shadow: 0 4px 16px rgba(20,40,80,.08); margin-bottom: 14px;
+  }
+  .card h2 {
+    font-size: 11px; color: #8794a8; font-weight: 600;
+    letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 10px;
+  }
+  canvas { display: block; width: 100%; }
+
+  .empty {
+    background: #fff; border-radius: 14px; padding: 46px 24px;
+    text-align: center; color: #8794a8; font-size: 14px;
+    box-shadow: 0 4px 16px rgba(20,40,80,.08);
+  }
+
+  .step {
+    background: #fff; border-radius: 14px; padding: 14px 18px;
+    box-shadow: 0 4px 16px rgba(20,40,80,.08);
+    margin-bottom: 12px;
+    border-left: 4px solid #cbd5e1;
+    animation: fadeIn .35s ease both;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .step.init   { border-left-color: #f59e0b; }
+  .step.assign { border-left-color: #3b82f6; }
+  .step.update { border-left-color: #8b5cf6; }
+  .step.done   { border-left-color: #10b981; background: linear-gradient(135deg,#ecfdf5,#fff 60%); }
+
+  .step-head { display: flex; align-items: center; gap: 10px; }
+  .num {
+    width: 24px; height: 24px; flex: none; border-radius: 50%;
+    background: #1f2937; color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .step.init .num   { background: #f59e0b; }
+  .step.assign .num { background: #3b82f6; }
+  .step.update .num { background: #8b5cf6; }
+  .step.done .num   { background: #10b981; }
+  .ttl { font-size: 14.5px; font-weight: 700; color: #111827; }
+  .sse {
+    margin-left: auto; font-family: "Consolas", monospace;
+    font-size: 13px; font-weight: 700; color: #1d4ed8;
+    background: #eff6ff; padding: 3px 10px; border-radius: 20px;
+    white-space: nowrap;
+  }
+  .desc { font-size: 12.5px; color: #6b7280; margin: 7px 0 10px 34px; line-height: 1.6; }
+
+  .cents { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-left: 34px; }
+  .cent { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #374151; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .cname { color: #4b5563; }
+  .cval { font-family: "Consolas", monospace; font-weight: 700; color: #0f172a; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0 34px; }
+  .chip {
+    font-size: 11.5px; font-family: "Consolas", monospace;
+    border: 1px solid #e2e8f0; border-radius: 20px;
+    padding: 2px 9px; background: #fafbfd;
+  }
+  .chip i { font-style: normal; color: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>K-Means 聚类过程记录</h1>
+    <p class="sub">云溪市积水点 · 归一化数据 · 记录每一步的质心与 SSE</p>
+    <div class="stats" id="stats"></div>
+  </header>
+  <section class="card" id="chartCard">
+    <h2>SSE 变化曲线</h2>
+    <canvas id="chart"></canvas>
+  </section>
+  <section id="content"></section>
+</div>
+<script>
+(function () {
+  var COLORS = ['#e74c3c', '#2f6fed', '#27ae60'];
+  var CNAMES = ['红', '蓝', '绿'];
+  var KEY = 'kmeans_history_v1';
+
+  var payload = null;
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) payload = JSON.parse(raw);
+  } catch (e) { payload = null; }
+
+  if (!payload || !payload.history || !payload.history.length) {
+    try {
+      if (window.opener && window.opener.__kmeansRecord) payload = window.opener.__kmeansRecord;
+    } catch (e2) {}
+  }
+
+  var steps = (payload && payload.history) ? payload.history : [];
+  var content = document.getElementById('content');
+  var statsEl = document.getElementById('stats');
+
+  if (!steps.length) {
+    document.getElementById('chartCard').style.display = 'none';
+    content.innerHTML = '<div class="empty">暂无记录。<br>请先在「K-Means 聚类模拟」页面完成一次聚类过程，再点击“聚类记录”。</div>';
+    return;
+  }
+
+  renderStats();
+  renderChart();
+  renderSteps();
+
+  var rt = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(rt);
+    rt = setTimeout(renderChart, 120);
+  });
+
+  function renderStats() {
+    var last = steps[steps.length - 1];
+    var first = steps[0];
+    var drop = first.sse > 0 ? (1 - last.sse / first.sse) * 100 : 0;
+    if (drop < 0) drop = 0;
+    statsEl.innerHTML =
+      '<div class="stat"><b>' + steps.length + '</b><span>记录步数</span></div>' +
+      '<div class="stat"><b>' + last.sse.toFixed(4) + '</b><span>最终 SSE</span></div>' +
+      '<div class="stat"><b>' + drop.toFixed(1) + '%</b><span>SSE 下降幅度</span></div>';
+  }
+
+  function renderChart() {
+    var cv = document.getElementById('chart');
+    if (!cv) return;
+    var rect = cv.parentNode.getBoundingClientRect();
+    var cssW = Math.max(240, Math.floor(rect.width - 32));
+    var cssH = 210;
+    var dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(cssW * dpr);
+    cv.height = Math.round(cssH * dpr);
+    cv.style.width = cssW + 'px';
+    cv.style.height = cssH + 'px';
+
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    var pad = { l: 66, r: 18, t: 16, b: 34 };
+    var vals = steps.map(function (s) { return s.sse; });
+    var maxV = Math.max.apply(null, vals);
+    var minV = Math.min.apply(null, vals);
+    if (maxV === minV) { maxV = minV + 0.001; }
+    var pd = (maxV - minV) * 0.15;
+    maxV += pd; minV = Math.max(0, minV - pd);
+
+    var iw = cssW - pad.l - pad.r;
+    var ih = cssH - pad.t - pad.b;
+
+    function PX(i) {
+      if (steps.length === 1) return pad.l + iw / 2;
+      return pad.l + i * iw / (steps.length - 1);
+    }
+    function PY(v) {
+      return pad.t + (1 - (v - minV) / (maxV - minV)) * ih;
+    }
+
+    /* 网格 + Y 轴刻度 */
+    ctx.font = '11px "Consolas", monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (var g = 0; g <= 4; g++) {
+      var v = minV + (maxV - minV) * g / 4;
+      var y = PY(v);
+      ctx.strokeStyle = '#eef1f6';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.l, y);
+      ctx.lineTo(pad.l + iw, y);
+      ctx.stroke();
+      ctx.fillStyle = '#9aa5b5';
+      ctx.fillText(v.toFixed(4), pad.l - 8, y);
+    }
+
+    /* 面积 */
+    ctx.beginPath();
+    ctx.moveTo(PX(0), PY(vals[0]));
+    for (var i = 1; i < vals.length; i++) ctx.lineTo(PX(i), PY(vals[i]));
+    ctx.lineTo(PX(vals.length - 1), pad.t + ih);
+    ctx.lineTo(PX(0), pad.t + ih);
+    ctx.closePath();
+    var grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ih);
+    grad.addColorStop(0, 'rgba(59,130,246,.25)');
+    grad.addColorStop(1, 'rgba(59,130,246,0)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    /* 折线 */
+    ctx.beginPath();
+    ctx.moveTo(PX(0), PY(vals[0]));
+    for (var j = 1; j < vals.length; j++) ctx.lineTo(PX(j), PY(vals[j]));
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 2.2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    /* 数据点 */
+    for (var k = 0; k < vals.length; k++) {
+      ctx.beginPath();
+      ctx.arc(PX(k), PY(vals[k]), 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = '#2563eb';
+      ctx.stroke();
+    }
+
+    /* X 轴标签 */
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#9aa5b5';
+    ctx.font = '11px "Segoe UI", "PingFang SC", sans-serif';
+    var every = Math.ceil(vals.length / 12);
+    for (var m = 0; m < vals.length; m++) {
+      if (m % every !== 0 && m !== vals.length - 1) continue;
+      ctx.fillText('第' + (m + 1) + '步', PX(m), pad.t + ih + 10);
+    }
+  }
+
+  function renderSteps() {
+    var html = '';
+    for (var i = 0; i < steps.length; i++) {
+      var s = steps[i];
+
+      var cents = '';
+      for (var k = 0; k < s.centroids.length; k++) {
+        var c = s.centroids[k];
+        cents += '<div class="cent">' +
+          '<span class="dot" style="background:' + COLORS[k] + '"></span>' +
+          '<span class="cname">' + CNAMES[k] + '色质心</span>' +
+          '<span class="cval">(' + c.x.toFixed(4) + ', ' + c.y.toFixed(4) + ')</span>' +
+        '</div>';
+      }
+
+      var chips = '';
+      if (s.ssePer && s.counts) {
+        for (var p = 0; p < s.ssePer.length; p++) {
+          chips += '<span class="chip" style="color:' + COLORS[p] + '">' +
+            CNAMES[p] + ' ' + s.ssePer[p].toFixed(4) +
+            ' <i>(' + s.counts[p] + ' 点)</i></span>';
+        }
+      }
+
+      html += '<div class="step ' + s.type + '">' +
+        '<div class="step-head">' +
+          '<span class="num">' + (i + 1) + '</span>' +
+          '<span class="ttl">' + s.title + '</span>' +
+          '<span class="sse">SSE = ' + s.sse.toFixed(4) + '</span>' +
+        '</div>' +
+        (s.detail ? '<p class="desc">' + s.detail + '</p>' : '') +
+        '<div class="cents">' + cents + '</div>' +
+        '<div class="chips">' + chips + '</div>' +
+      '</div>';
+    }
+    content.innerHTML = html;
+  }
+})();
+<\/script>
+</body>
+</html>`;
+
+  let recordWin = null;
+
+  function openRecordPage() {
+    saveHistory();
+
+    if (!recordWin || recordWin.closed) {
+      recordWin = window.open('', 'kmeansRecordWin');
+    }
+    if (!recordWin) {
+      toast('⚠️ 浏览器拦截了弹出窗口，请允许后重试');
+      return;
+    }
+    recordWin.document.open();
+    recordWin.document.write(RECORD_PAGE_HTML);
+    recordWin.document.close();
+    recordWin.focus();
+  }
+
+  recordBtn.addEventListener('click', openRecordPage);
+
+  /* ========================================================
+     15. 主循环
+     ======================================================== */
+  function frame() {
+    if (anim) stepAnim();
+    draw();
+    updateButtonsShown();
+    updateStatus();
+    updateDistPanel();
+    updateSSEBadge();
+    updateRecordBtn();
+    requestAnimationFrame(frame);
+  }
+
+  /* ========================================================
+     16. 启动
+     ======================================================== */
+  resizeCanvas();
+  const ro = new ResizeObserver(resizeCanvas);
+  ro.observe(document.querySelector('.stage-wrap'));
+  window.addEventListener('resize', resizeCanvas);
+
+  updateStatus();
+  updateDistPanel();
+  updateSSEBadge();
+  updateRecordBtn();
+  frame();
+
+  setTimeout(() => {
+    toast('👋 请点击 3 个点作为初始聚类中心（质心）', 4500);
+  }, 400);
+
+})();
+</script>
+</body>
+</html>
